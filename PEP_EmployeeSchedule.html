@@ -30,6 +30,22 @@
       top: 0;
       width: 250px;
       overflow-y: auto;
+      border-left: 1px solid #dee2e6;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    }
+    .sidebar .nav-link {
+      color: #000; /* Black text for better visibility */
+      font-weight: 600;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .sidebar .nav-link:hover {
+      background-color: #d4e6d4;
+    }
+    .sidebar .nav-link.active {
+      background-color: #2c5530;
+      color: #fff !important;
     }
     .content {
       margin-right: 250px;
@@ -58,7 +74,7 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link" href="PEP_Main.html">Back to Main Site</a>
+            <a class="nav-link" href="PEP_Main.html">Return to Customer Page</a>
           </li>
         </ul>
       </div>
@@ -72,6 +88,9 @@
       </li>
       <li class="nav-item">
         <a class="nav-link" href="PEP_EmployeeTasks.html">View Tasks</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#adminLoginModal">Admin Access</a>
       </li>
     </ul>
   </div>
@@ -111,5 +130,36 @@
       </form>
     </div>
   </div>
+  <!-- Admin Login Modal -->
+  <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="adminLoginLabel">Admin Access</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="adminPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="adminPassword" placeholder="Enter admin password">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="handleAdminLogin()">Login</button>
+            <button type="button" class="btn btn-secondary mt-2" onclick="bypassToAdmin()">Test Bypass to Admin</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function handleAdminLogin() {
+      alert('Admin login successful! Redirecting... (Placeholder)');
+      window.location.href = 'PEP_Admin.html';
+    }
+
+    function bypassToAdmin() {
+      window.location.href = 'PEP_Admin.html';
+    }
+  </script>
 </body>
 </html>
