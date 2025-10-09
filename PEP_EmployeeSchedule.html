@@ -23,7 +23,7 @@
     }
     .sidebar {
       height: 100vh;
-      background-color: #e9ecef;
+      background-color: #2c5530;
       padding: 20px;
       position: fixed;
       right: 0;
@@ -34,7 +34,7 @@
       box-shadow: -2px 0 5px rgba(0,0,0,0.1);
     }
     .sidebar .nav-link {
-      color: #000; /* Black text for better visibility */
+      color: #006400; /* Dark green text for better visibility/contrast */
       font-weight: 600;
       padding: 10px;
       border-radius: 5px;
@@ -44,7 +44,7 @@
       background-color: #d4e6d4;
     }
     .sidebar .nav-link.active {
-      background-color: #2c5530;
+      background-color: #5c8c61;
       color: #fff !important;
     }
     .content {
@@ -71,17 +71,10 @@
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="PEP_Main.html">Return to Customer Page</a>
-          </li>
-        </ul>
-      </div>
     </div>
   </nav>
   <div class="sidebar">
-    <h4>Options</h4>
+    <h4 style="color: white;">Options</h4>
     <ul class="nav flex-column">
       <li class="nav-item">
         <a class="nav-link active" href="PEP_EmployeeSchedule.html">View Schedule</a>
@@ -91,6 +84,9 @@
       </li>
       <li class="nav-item">
         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#adminLoginModal">Admin Access</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="PEP_Main.html">Return Home</a>
       </li>
     </ul>
   </div>
