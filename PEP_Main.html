@@ -361,6 +361,7 @@ color: #fff;
               <input type="password" class="form-control" id="empPassword" placeholder="Password">
             </div>
             <button type="button" class="btn btn-primary" onclick="handleEmployeeSignIn()">Sign In</button>
+            <button type="button" class="btn btn-secondary mt-2" onclick="bypassToPortal()">Test Bypass to Portal</button>
           </form>
         </div>
       </div>
@@ -403,10 +404,14 @@ function handleSignUp() {
 
 function handleEmployeeSignIn() {
   alert('Employee sign in successful! Redirecting to portal... (Static placeholder)');
-  window.location.href = 'PEP_EmployeePortal.html'; // Redirect to portal page
+  window.location.href = 'PEP_EmployeeSchedule.html'; // Redirect to portal page
 }
 
-// Scroll animation observer (existing)
+function bypassToPortal() {
+  window.location.href = 'PEP_EmployeeSchedule.html'; // Testing bypass
+}
+
+// Scroll animation observer
 const sections = document.querySelectorAll('.animate-bottom, .animate-left, .animate-zoom, .animate-right');
 const options = {
 threshold: 0.025
