@@ -7,7 +7,9 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@400;700&display=swap">
 <style>
-html {
+html, body {
+  width: 100%;
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 body {
@@ -29,7 +31,6 @@ body {
   margin: 0 20px;
   text-decoration: underline;
 }
-
 .navigation-bar .tree-divider {
   height: 20px;
   width: 20px;
@@ -123,6 +124,13 @@ form .form-control {
 .stars {
   color: #FFD700; /* Gold for stars */
 }
+.leave-review-btn {
+  background-color: #2c5530; /* Green button */
+  color: #fff;
+  font-size: 1.5rem;
+  padding: 15px 30px;
+  border: none;
+}
 </style>
 </head>
 <body>
@@ -150,30 +158,9 @@ form .form-control {
   </div>
 </section>
 <section id="submit-review" class="py-5 bg-mid animate-left">
-  <div class="container">
-    <h2 class="section-title">Leave a Review</h2>
-    <form>
-      <div class="mb-3">
-        <label for="name" class="form-label">Your Name</label>
-        <input type="text" class="form-control" id="name" placeholder="Enter your name">
-      </div>
-      <div class="mb-3">
-        <label for="rating" class="form-label">Rating</label>
-        <select class="form-select" id="rating">
-          <option value="5">5 Stars</option>
-          <option value="4">4 Stars</option>
-          <option value="3">3 Stars</option>
-          <option value="2">2 Stars</option>
-          <option value="1">1 Star</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="comment" class="form-label">Your Review</label>
-        <textarea class="form-control" id="comment" rows="5" placeholder="Share your experience..."></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary">Submit Review</button>
-    </form>
-    <p class="mt-3 text-muted">Note: Reviews are moderated before posting. In the future, you'll need to sign in to submit.</p>
+  <div class="container text-center">
+    <button type="button" class="btn leave-review-btn" onclick="handleLeaveReview()">Leave A Review</button>
+    <p class="mt-3 text-muted">Note: Reviews are moderated before posting. You must be logged in to submit.</p>
   </div>
 </section>
 <section id="display-reviews" class="py-5 animate-zoom">
@@ -236,13 +223,87 @@ form .form-control {
 </section>
 <footer class="text-center">
   <p><a href="https://www.facebook.com/p/Petrongolo-Evergreen-Plantation-100064604442455/" target="_blank" style="color: #fff;">Facebook</a> | Email: info@petrongolo.com | Phone: (609) 567-0336</p>
-      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3074.663747983165!2d-74.739235684646!3d39.641058279464!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c13a4a5b5e4b0b%3A0x9f2c4e5d6a7b8c9d!2s7541%20Weymouth%20Rd%2C%20Hammonton%2C%20NJ%2008037!5e0!3m2!1sen!2sus!4v1728321600000!5m2!1sen!2sus" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-
   <p>&copy; 2025 Petrongolo Evergreen Plantation. All rights reserved.</p>
   <div>
-    <a href="index.html" style="color: #fff;">Home</a> | <a href="PEP_AboutUs.html" style="color: #fff;">About</a> | <a href="PEP_Catalog.html" style="color: #fff;">Catalog</a> | <a href="#" style="color: #fff;">Reviews</a> | <a href="PEP_VisitUs.html" style="color: #fff;">Visit Us</a> | <a href="PEP_ContactUs.html" style="color: #fff;">Contact</a>
+    <a href="PEP_Main.html" style="color: #fff;">Home</a> | <a href="PEP_AboutUs.html" style="color: #fff;">About</a> | <a href="PEP_Catalog.html" style="color: #fff;">Catalog</a> | <a href="#" style="color: #fff;">Reviews</a> | <a href="PEP_VisitUs.html" style="color: #fff;">Visit Us</a> | <a href="PEP_ContactUs.html" style="color: #fff;">Contact</a>
   </div>
 </footer>
+<!-- Login Modal (copied from main page for prompt if not logged in) -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loginModalLabel">Login or Sign Up to Leave a Review</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <button type="button" class="btn btn-primary mb-3" onclick="showCustomerLogin()">Customer Login / Sign Up</button>
+          <button type="button" class="btn btn-secondary mb-3" onclick="showEmployeeLogin()">Employee Login</button>
+          <button type="button" class="btn btn-warning mt-2" onclick="bypassToReviewWrite()">Test Bypass to Review Write</button>
+        </div>
+        <div id="customerForm" style="display: none;">
+          <form id="customerSignInForm">
+            <h6>Customer Sign In</h6>
+            <div class="mb-3">
+              <label for="custUsername" class="form-label">Username</label>
+              <input type="text" class="form-control" id="custUsername" placeholder="Username">
+            </div>
+            <div class="mb-3">
+              <label for="custPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="custPassword" placeholder="Password">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="handleCustomerSignInReview()">Sign In</button>
+            <p class="mt-2">Don't have an account? <a href="#" onclick="showSignUp()">Sign Up</a></p>
+          </form>
+          <form id="customerSignUpForm" style="display: none;">
+            <h6>Customer Sign Up</h6>
+            <div class="mb-3">
+              <label for="fname" class="form-label">First Name</label>
+              <input type="text" class="form-control" id="fname" placeholder="First Name">
+            </div>
+            <div class="mb-3">
+              <label for="lname" class="form-label">Last Name</label>
+              <input type="text" class="form-control" id="lname" placeholder="Last Name">
+            </div>
+            <div class="mb-3">
+              <label for="phone" class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" id="phone" placeholder="Phone Number">
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" placeholder="Email">
+            </div>
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" placeholder="Username">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" placeholder="Password">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="handleSignUpReview()">Sign Up</button>
+            <p class="mt-2">Already have an account? <a href="#" onclick="showSignIn()">Sign In</a></p>
+          </form>
+        </div>
+        <div id="employeeForm" style="display: none;">
+          <form>
+            <h6>Employee Sign In</h6>
+            <div class="mb-3">
+              <label for="empEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="empEmail" placeholder="Email">
+            </div>
+            <div class="mb-3">
+              <label for="empPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="empPassword" placeholder="Password">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="handleEmployeeSignInReview()">Sign In</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 // Scroll animation observer
 const sections = document.querySelectorAll('.animate-bottom, .animate-left, .animate-zoom, .animate-right');
@@ -261,6 +322,57 @@ const observer = new IntersectionObserver((entries, observer) => {
 sections.forEach(section => {
   observer.observe(section);
 });
+
+// Leave review button logic
+function handleLeaveReview() {
+  // Simulate not logged in - open modal (later check token)
+  var myModal = new bootstrap.Modal(document.getElementById('loginModal'));
+  myModal.show();
+}
+
+// Modal functions (same as main page, but redirects to review write after login)
+function showCustomerLogin() {
+  document.getElementById('customerForm').style.display = 'block';
+  document.getElementById('employeeForm').style.display = 'none';
+  document.getElementById('customerSignInForm').style.display = 'block';
+  document.getElementById('customerSignUpForm').style.display = 'none';
+}
+
+function showEmployeeLogin() {
+  document.getElementById('customerForm').style.display = 'none';
+  document.getElementById('employeeForm').style.display = 'block';
+}
+
+function showSignUp() {
+  document.getElementById('customerSignInForm').style.display = 'none';
+  document.getElementById('customerSignUpForm').style.display = 'block';
+}
+
+function showSignIn() {
+  document.getElementById('customerSignUpForm').style.display = 'none';
+  document.getElementById('customerSignInForm').style.display = 'block';
+}
+
+function handleCustomerSignInReview() {
+  alert('Customer sign in successful! Redirecting to write review... (Static placeholder)');
+  bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+  window.location.href = 'PEP_ReviewWrite.html';
+}
+
+function handleSignUpReview() {
+  alert('Sign up successful! Please sign in to continue. (Static placeholder)');
+  showSignIn();
+}
+
+function handleEmployeeSignInReview() {
+  alert('Employee sign in successful! Redirecting to write review... (Static placeholder)');
+  bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+  window.location.href = 'PEP_ReviewWrite.html';
+}
+
+function bypassToReviewWrite() {
+  window.location.href = 'PEP_ReviewWrite.html';
+}
 </script>
 </body>
 </html>
