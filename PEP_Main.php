@@ -1,3 +1,81 @@
+<?php
+session_start(); // Start session for login state
+include 'config.php'; // Include DB connection
+
+$success = $error = '';
+
+// Handle Customer Sign Up
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'signup') {
+  $fname = $_POST['fname'];
+  $lname = $_POST['lname'];
+  $phone = $_POST['phone'];
+  $email = $_POST['email'];
+  $username = $_POST['username'];
+  $password = $_POST['password'];
+  $role = 'customer';
+
+  // Hash password
+  $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+  // Insert into DB
+  $sql = "INSERT INTO users (fname, lname, phone, email, username, password_hash, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+  $stmt = $conn->prepare($sql);
+  $stmt->bind_param("sssssss", $fname, $lname, $phone, $email, $username, $password_hash, $role);
+
+  if ($stmt->execute()) {
+    $success = "Account created! Please sign in.";
+  } else {
+    $error = "Error: Username or email already exists.";
+  }
+  $stmt->close();
+}
+
+// Handle Customer Login
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'customer_login') {
+  $username = $_POST['custUsername'];
+  $password = $_POST['custPassword'];
+
+  $sql = "SELECT id, password_hash FROM users WHERE username = ? AND role = 'customer'";
+  $stmt = $conn->prepare($sql);
+  $stmt->bind_param("s", $username);
+  $stmt->execute();
+  $stmt->bind_result($id, $password_hash);
+  if ($stmt->fetch() && password_verify($password, $password_hash)) {
+    $_SESSION['user_id'] = $id;
+    $_SESSION['role'] = 'customer';
+    $success = "Login successful!";
+    // Redirect or stay (e.g., header("Location: PEP_Main.php"); exit; )
+  } else {
+    $error = "Invalid credentials.";
+  }
+  $stmt->close();
+}
+
+// Handle Employee Login (similar, redirect to portal)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'employee_login') {
+  $email = $_POST['empEmail'];
+  $password = $_POST['empPassword'];
+
+  $sql = "SELECT id, password_hash, role FROM users WHERE email = ? AND role IN ('employee', 'admin')";
+  $stmt = $conn->prepare($sql);
+  $stmt->bind_param("s", $email);
+  $stmt->execute();
+  $stmt->bind_result($id, $password_hash, $role);
+  if ($stmt->fetch() && password_verify($password, $password_hash)) {
+    $_SESSION['user_id'] = $id;
+    $_SESSION['role'] = $role;
+    $success = "Login successful! Redirecting to portal...";
+    header("Location: PEP_EmployeeSchedule.html"); // Change to .php later
+    exit;
+  } else {
+    $error = "Invalid credentials.";
+  }
+  $stmt->close();
+}
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,8 +232,8 @@ color: #fff;
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
+<?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
+<?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
 <div class="container">
@@ -306,62 +384,64 @@ color: #fff;
           <button type="button" class="btn btn-secondary mb-3" onclick="showEmployeeLogin()">Employee Login</button>
         </div>
         <div id="customerForm" style="display: none;">
-          <form id="customerSignInForm">
+          <form action="PEP_Main.php" method="post" id="customerSignInForm">
+            <input type="hidden" name="action" value="customer_login">
             <h6>Customer Sign In</h6>
             <div class="mb-3">
               <label for="custUsername" class="form-label">Username</label>
-              <input type="text" class="form-control" id="custUsername" placeholder="Username">
+              <input type="text" class="form-control" id="custUsername" name="custUsername" placeholder="Username">
             </div>
             <div class="mb-3">
               <label for="custPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="custPassword" placeholder="Password">
+              <input type="password" class="form-control" id="custPassword" name="custPassword" placeholder="Password">
             </div>
-            <button type="button" class="btn btn-primary" onclick="handleCustomerSignIn()">Sign In</button>
+            <button type="submit" class="btn btn-primary">Sign In</button>
             <p class="mt-2">Don't have an account? <a href="#" onclick="showSignUp()">Sign Up</a></p>
           </form>
-          <form id="customerSignUpForm" style="display: none;">
+          <form action="PEP_Main.php" method="post" id="customerSignUpForm" style="display: none;">
+            <input type="hidden" name="action" value="signup">
             <h6>Customer Sign Up</h6>
             <div class="mb-3">
               <label for="fname" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="fname" placeholder="First Name">
+              <input type="text" class="form-control" id="fname" name="fname" placeholder="First Name">
             </div>
             <div class="mb-3">
               <label for="lname" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="lname" placeholder="Last Name">
+              <input type="text" class="form-control" id="lname" name="lname" placeholder="Last Name">
             </div>
             <div class="mb-3">
               <label for="phone" class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" id="phone" placeholder="Phone Number">
+              <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number">
             </div>
             <div class="mb-3">
               <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" placeholder="Email">
+              <input type="email" class="form-control" id="email" name="email" placeholder="Email">
             </div>
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" placeholder="Username">
+              <input type="text" class="form-control" id="username" name="username" placeholder="Username">
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" placeholder="Password">
+              <input type="password" class="form-control" id="password" name="password" placeholder="Password">
             </div>
-            <button type="button" class="btn btn-primary" onclick="handleSignUp()">Sign Up</button>
+            <button type="submit" class="btn btn-primary">Sign Up</button>
             <p class="mt-2">Already have an account? <a href="#" onclick="showSignIn()">Sign In</a></p>
           </form>
         </div>
         <div id="employeeForm" style="display: none;">
-          <form>
+          <form action="PEP_Main.php" method="post">
+            <input type="hidden" name="action" value="employee_login">
             <h6>Employee Sign In</h6>
             <div class="mb-3">
               <label for="empEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="empEmail" placeholder="Email">
+              <input type="email" class="form-control" id="empEmail" name="empEmail" placeholder="Email">
             </div>
             <div class="mb-3">
               <label for="empPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="empPassword" placeholder="Password">
+              <input type="password" class="form-control" id="empPassword" name="empPassword" placeholder="Password">
             </div>
-            <button type="button" class="btn btn-primary" onclick="handleEmployeeSignIn()">Sign In</button>
-            <button type="button" class="btn btn-secondary mt-2" onclick="bypassToPortal()">Test Bypass to Portal</button>
+            <button type="submit" class="btn btn-primary">Sign In</button>
           </form>
         </div>
       </div>
@@ -369,48 +449,6 @@ color: #fff;
   </div>
 </div>
 <script>
-function showCustomerLogin() {
-  document.getElementById('customerForm').style.display = 'block';
-  document.getElementById('employeeForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
-
-function showEmployeeLogin() {
-  document.getElementById('customerForm').style.display = 'none';
-  document.getElementById('employeeForm').style.display = 'block';
-}
-
-function showSignUp() {
-  document.getElementById('customerSignInForm').style.display = 'none';
-  document.getElementById('customerSignUpForm').style.display = 'block';
-}
-
-function showSignIn() {
-  document.getElementById('customerSignUpForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-}
-
-// Placeholder functions for form submissions (to be linked to backend later)
-function handleCustomerSignIn() {
-  alert('Customer sign in successful! (Static placeholder)');
-  bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-}
-
-function handleSignUp() {
-  alert('Sign up successful! Please sign in. (Static placeholder)');
-  showSignIn();
-}
-
-function handleEmployeeSignIn() {
-  alert('Employee sign in successful! Redirecting to portal... (Static placeholder)');
-  window.location.href = 'PEP_EmployeeSchedule.html'; // Redirect to portal page
-}
-
-function bypassToPortal() {
-  window.location.href = 'PEP_EmployeeSchedule.html'; // Testing bypass
-}
-
 // Scroll animation observer
 const sections = document.querySelectorAll('.animate-bottom, .animate-left, .animate-zoom, .animate-right');
 const options = {
