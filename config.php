@@ -1,6 +1,6 @@
 <?php
 $servername = "localhost"; // Hostinger default
-$username = "PetrongoloData"; // From Hostinger panel
+$username = "u915985959_PetrongoloData"; // From Hostinger panel
 $password = "P_Database1"; // From Hostinger panel
 $dbname = "u915985959_PetrongoloData"; // e.g., petrongolo_db
 
