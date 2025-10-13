@@ -85,16 +85,16 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'employee' && $_SESSION[
     <h4 style="color: white;">Options</h4>
     <ul class="nav flex-column">
       <li class="nav-item">
-        <a class="nav-link" href="PEP_EmployeeSchedule.html">View Schedule</a>
+        <a class="nav-link" href="PEP_EmployeeSchedule.php">View Schedule</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link active" href="PEP_EmployeeTasks.html">View Tasks</a>
+        <a class="nav-link active" href="PEP_EmployeeTasks.php">View Tasks</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#adminLoginModal">Admin Access</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="PEP_Main.html">Return Home</a>
+        <a class="nav-link" href="PEP_Main.php">Return Home</a>
       </li>
     </ul>
   </div>

@@ -64,10 +64,10 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link" href="PEP_EmployeeSchedule.html">Back to Employee Portal</a>
+            <a class="nav-link" href="PEP_EmployeeSchedule.php">Back to Employee Portal</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="PEP_Main.html">Return to Customer Page</a>
+            <a class="nav-link" href="PEP_Main.php">Return to Customer Page</a>
           </li>
         </ul>
       </div>
