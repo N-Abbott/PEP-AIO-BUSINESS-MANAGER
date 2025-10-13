@@ -234,6 +234,7 @@ color: #fff;
 <body>
 <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
 <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
+<button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
 <div class="container">
