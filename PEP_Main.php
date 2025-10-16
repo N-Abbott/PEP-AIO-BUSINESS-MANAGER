@@ -247,15 +247,15 @@ color: #fff;
 <div class="navigation-bar">
 <div class="container">
 <div class="d-flex justify-content-between align-items-center">
-<a class="nav-link" href="PEP_AboutUs.html">About</a>
+<a class="nav-link" href="PEP_AboutUs.php">About</a>
 <img src="Tree.png" class="tree-divider" alt="Tree Divider">
-<a class="nav-link" href="PEP_Catalog.html">Catalog</a>
+<a class="nav-link" href="PEP_Catalog.php">Catalog</a>
 <img src="Tree.png" class="tree-divider" alt="Tree Divider">
-<a class="nav-link" href="PEP_Reviews.html">Reviews</a>
+<a class="nav-link" href="PEP_Reviews.php">Reviews</a>
 <img src="Tree.png" class="tree-divider" alt="Tree Divider">
-<a class="nav-link" href="PEP_VisitUs.html">Visit Us</a>
+<a class="nav-link" href="PEP_VisitUs.php">Visit Us</a>
 <img src="Tree.png" class="tree-divider" alt="Tree Divider">
-<a class="nav-link" href="PEP_ContactUs.html">Contact</a>
+<a class="nav-link" href="PEP_ContactUs.php">Contact</a>
 </div>
 </div>
 </div>
