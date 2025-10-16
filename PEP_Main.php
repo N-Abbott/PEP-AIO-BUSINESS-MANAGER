@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start(); // Start session for login state
 include 'config.php'; // Include DB connection
 
@@ -6,21 +10,20 @@ $success = $error = '';
 
 // Handle Customer Sign Up
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'signup') {
-  $fname = $_POST['fname'];
-  $lname = $_POST['lname'];
-  $phone = $_POST['phone'];
-  $email = $_POST['email'];
+  $first_name = $_POST['fname'];
+  $last_name = $_POST['lname'];
+  $phone_number = $_POST['phone'];
+  $email_address = $_POST['email'];
   $username = $_POST['username'];
   $password = $_POST['password'];
-  $role = 'customer';
 
   // Hash password
   $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
   // Insert into DB
-  $sql = "INSERT INTO users (fname, lname, phone, email, username, password_hash, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+  $sql = "INSERT INTO custLogin (first_name, last_name, phone_number, email_address, username, password_hash) VALUES (?, ?, ?, ?, ?, ?)";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param("sssssss", $fname, $lname, $phone, $email, $username, $password_hash, $role);
+  $stmt->bind_param("ssssss", $first_name, $last_name, $phone_number, $email_address, $username, $password_hash);
 
   if ($stmt->execute()) {
     $success = "Account created! Please sign in.";
@@ -35,16 +38,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   $username = $_POST['custUsername'];
   $password = $_POST['custPassword'];
 
-  $sql = "SELECT id, password_hash FROM users WHERE username = ? AND role = 'customer'";
+  $sql = "SELECT id, password_hash FROM custLogin WHERE username = ?";
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("s", $username);
   $stmt->execute();
   $stmt->bind_result($id, $password_hash);
   if ($stmt->fetch() && password_verify($password, $password_hash)) {
     $_SESSION['user_id'] = $id;
-    $_SESSION['role'] = 'customer';
+    $_SESSION['role'] = 'customer'; // Hardcoded since no role column
     $success = "Login successful!";
-    // Redirect or stay (e.g., header("Location: PEP_Main.php"); exit; )
+    header("Refresh:0"); // Refresh page to show My Account button immediately
   } else {
     $error = "Invalid credentials.";
   }
@@ -56,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   $email = $_POST['empEmail'];
   $password = $_POST['empPassword'];
 
-  $sql = "SELECT id, password_hash, role FROM users WHERE email = ? AND role IN ('employee', 'admin')";
+  $sql = "SELECT id, password_hash, role FROM users WHERE email = ? AND role IN ('employee', 'admin')"; // TODO: Update to empLogin table if exists
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("s", $email);
   $stmt->execute();
@@ -234,15 +237,12 @@ color: #fff;
 <body>
 <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
 <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
-<?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
-<?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
 
 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
   <a href="PEP_CustomerAccount.php" class="btn btn-primary login-btn">My Account</a>
 <?php else: ?>
   <button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
 <?php endif; ?>
-<button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
 <div class="container">
@@ -262,16 +262,16 @@ color: #fff;
 <div id="heroCarousel" class="carousel slide hero-carousel animate-bottom" data-bs-ride="carousel">
 <div class="carousel-inner">
 <div class="carousel-item active">
-<img src="Carasel1.jpg" class="d-block w-100" alt="Family Picture"> <!-- Fixed typo in filename -->
+<img src="Carousel1.jpg" class="d-block w-100" alt="Family Picture">
 </div>
 <div class="carousel-item">
-<img src="Carasel2.jpg" class="d-block w-100" alt="Tree 2"> <!-- Consistent alt text -->
+<img src="Carousel2.jpg" class="d-block w-100" alt="Tree 2">
 </div>
 <div class="carousel-item">
-<img src="Carasel3.jpg" class="d-block w-100" alt="Tree 3">
+<img src="Carousel3.jpg" class="d-block w-100" alt="Tree 3">
 </div>
 <div class="carousel-item">
-<img src="Carasel4.jpg" class="d-block w-100" alt="Tree 4">
+<img src="Carousel4.jpg" class="d-block w-100" alt="Tree 4">
 </div>
 </div>
 <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
@@ -323,7 +323,7 @@ color: #fff;
 <div class="card-body text-center">
 <h5 class="card-title">Holiday Wreath</h5>
 <p class="card-text">Handmade fresh wreaths, decorated or plain. Great for doors and mantels.</p>
-<p class="card-text">Price:<br>Undecoracted: $25<br>Decorated: $30</p>
+<p class="card-text">Price:<br>Undecorated: $25<br>Decorated: $30</p>
 </div>
 </div>
 </div>

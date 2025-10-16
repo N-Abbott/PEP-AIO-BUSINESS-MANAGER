@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 include 'config.php'; // DB connection
 
@@ -11,25 +15,25 @@ $user_id = $_SESSION['user_id'];
 $success = $error = '';
 
 // Fetch current user data
-$sql = "SELECT fname, lname, phone, email, username FROM users WHERE id = ?";
+$sql = "SELECT first_name, last_name, phone_number, email_address, username FROM custLogin WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$stmt->bind_result($fname, $lname, $phone, $email, $username);
+$stmt->bind_result($first_name, $last_name, $phone_number, $email_address, $username);
 $stmt->fetch();
 $stmt->close();
 
 // Handle Profile Update
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update_profile') {
-  $new_fname = $_POST['fname'];
-  $new_lname = $_POST['lname'];
-  $new_phone = $_POST['phone'];
-  $new_email = $_POST['email'];
+  $new_first_name = $_POST['first_name'];
+  $new_last_name = $_POST['last_name'];
+  $new_phone_number = $_POST['phone_number'];
+  $new_email_address = $_POST['email_address'];
   $new_username = $_POST['username'];
 
-  $sql = "UPDATE users SET fname = ?, lname = ?, phone = ?, email = ?, username = ? WHERE id = ?";
+  $sql = "UPDATE custLogin SET first_name = ?, last_name = ?, phone_number = ?, email_address = ?, username = ? WHERE id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param("sssssi", $new_fname, $new_lname, $new_phone, $new_email, $new_username, $user_id);
+  $stmt->bind_param("sssssi", $new_first_name, $new_last_name, $new_phone_number, $new_email_address, $new_username, $user_id);
 
   if ($stmt->execute()) {
     $success = "Profile updated successfully!";
@@ -49,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $error = "New passwords do not match.";
   } else {
     // Verify old password
-    $sql = "SELECT password_hash FROM users WHERE id = ?";
+    $sql = "SELECT password_hash FROM custLogin WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -59,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
 
     if (password_verify($old_password, $password_hash)) {
       $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
-      $sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+      $sql = "UPDATE custLogin SET password_hash = ? WHERE id = ?";
       $stmt = $conn->prepare($sql);
       $stmt->bind_param("si", $new_hash, $user_id);
       if ($stmt->execute()) {
@@ -83,7 +87,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'logout') {
 
 // Handle Delete Account
 if (isset($_POST['action']) && $_POST['action'] == 'delete_account') {
-  $sql = "DELETE FROM users WHERE id = ?";
+  $sql = "DELETE FROM custLogin WHERE id = ?";
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("i", $user_id);
   if ($stmt->execute()) {
@@ -125,20 +129,20 @@ $conn->close();
     <form action="PEP_CustomerAccount.php" method="post">
       <input type="hidden" name="action" value="update_profile">
       <div class="mb-3">
-        <label for="fname">First Name</label>
-        <input type="text" class="form-control" id="fname" name="fname" value="<?php echo htmlspecialchars($fname); ?>">
+        <label for="first_name">First Name</label>
+        <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>">
       </div>
       <div class="mb-3">
-        <label for="lname">Last Name</label>
-        <input type="text" class="form-control" id="lname" name="lname" value="<?php echo htmlspecialchars($lname); ?>">
+        <label for="last_name">Last Name</label>
+        <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>">
       </div>
       <div class="mb-3">
-        <label for="phone">Phone Number</label>
-        <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars($phone); ?>">
+        <label for="phone_number">Phone Number</label>
+        <input type="tel" class="form-control" id="phone_number" name="phone_number" value="<?php echo htmlspecialchars($phone_number); ?>">
       </div>
       <div class="mb-3">
-        <label for="email">Email</label>
-        <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
+        <label for="email_address">Email Address</label>
+        <input type="email" class="form-control" id="email_address" name="email_address" value="<?php echo htmlspecialchars($email_address); ?>">
       </div>
       <div class="mb-3">
         <label for="username">Username</label>
@@ -179,6 +183,8 @@ $conn->close();
       <button type="submit" class="btn btn-danger ms-2">Delete Account</button>
     </form>
   </div>
+  <br>
+  <br>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
