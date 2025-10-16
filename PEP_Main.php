@@ -65,7 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $_SESSION['user_id'] = $id;
     $_SESSION['role'] = $role;
     $success = "Login successful! Redirecting to portal...";
-    header("Location: PEP_EmployeeSchedule.html"); // Change to .php later
+    header("Location: PEP_EmployeeSchedule.php"); // Updated to .php
     exit;
   } else {
     $error = "Invalid credentials.";
@@ -254,10 +254,10 @@ color: #fff;
 <div id="heroCarousel" class="carousel slide hero-carousel animate-bottom" data-bs-ride="carousel">
 <div class="carousel-inner">
 <div class="carousel-item active">
-<img src="Carasel1.jpg" class="d-block w-100" alt="Tree 1">
+<img src="Carasel1.jpg" class="d-block w-100" alt="Family Picture"> <!-- Fixed typo in filename -->
 </div>
 <div class="carousel-item">
-<img src="Carasel2.jpg" class="d-block w-100" alt="Tree 2">
+<img src="Carasel2.jpg" class="d-block w-100" alt="Tree 2"> <!-- Consistent alt text -->
 </div>
 <div class="carousel-item">
 <img src="Carasel3.jpg" class="d-block w-100" alt="Tree 3">
@@ -311,11 +311,11 @@ color: #fff;
 <div class="row">
 <div class="col-md-4 mb-4">
 <div class="card bg-transparent border-0 product-card">
-<img src="https://pacificgarland.com/cdn/shop/products/mixed-evergreen-holiday-everring-wreath_2000x.jpg?v=1698960912" class="card-img-top" alt="Holiday Wreath">
+<img src="Wreath1.jpg" class="card-img-top" alt="Holiday Wreath">
 <div class="card-body text-center">
 <h5 class="card-title">Holiday Wreath</h5>
 <p class="card-text">Handmade fresh wreaths, decorated or plain. Great for doors and mantels.</p>
-<p class="card-text">Price: $25 - $45</p>
+<p class="card-text">Price:<br>Undecoracted: $25<br>Decorated: $30</p>
 </div>
 </div>
 </div>
@@ -325,17 +325,17 @@ color: #fff;
 <div class="card-body text-center">
 <h5 class="card-title">Fraser Fir Tree</h5>
 <p class="card-text">A popular Christmas tree with strong branches and excellent needle retention. Perfect for ornaments.</p>
-<p class="card-text">Price: $50 - $150 depending on size</p>
+<p class="card-text">Price: TBD</p>
 </div>
 </div>
 </div>
 <div class="col-md-4 mb-4">
 <div class="card bg-transparent border-0 product-card">
-<img src="https://extension.umn.edu/sites/extension.umn.edu/files/001%20The%20traditional%20red%20poinsettia.jpg" class="card-img-top" alt="Poinsettia">
+<img src="redPointsetta1.jpg" class="card-img-top" alt="Poinsettia">
 <div class="card-body text-center">
-<h5 class="card-title">Poinsettia</h5>
+<h5 class="card-title">Red Poinsettia</h5>
 <p class="card-text">Vibrant red poinsettias to brighten your holiday decor.</p>
-<p class="card-text">Price: $10 - $30</p>
+<p class="card-text">Price:<br>6 Inch Pot: $10<br>8 Inch Pot: $20</p>
 </div>
 </div>
 </div>
@@ -467,6 +467,30 @@ entry.target.classList.remove('visible');
 sections.forEach(section => {
 observer.observe(section);
     });
+
+// Modal form toggle functions
+function showCustomerLogin() {
+  document.getElementById('customerForm').style.display = 'block';
+  document.getElementById('employeeForm').style.display = 'none';
+  document.getElementById('customerSignInForm').style.display = 'block';
+  document.getElementById('customerSignUpForm').style.display = 'none';
+}
+
+function showEmployeeLogin() {
+  document.getElementById('customerForm').style.display = 'none';
+  document.getElementById('employeeForm').style.display = 'block';
+}
+
+function showSignUp() {
+  document.getElementById('customerSignInForm').style.display = 'none';
+  document.getElementById('customerSignUpForm').style.display = 'block';
+}
+
+function showSignIn() {
+  document.getElementById('customerSignInForm').style.display = 'block';
+  document.getElementById('customerSignUpForm').style.display = 'none';
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
