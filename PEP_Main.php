@@ -254,7 +254,7 @@ color: #fff;
 <div id="heroCarousel" class="carousel slide hero-carousel animate-bottom" data-bs-ride="carousel">
 <div class="carousel-inner">
 <div class="carousel-item active">
-<img src="eevee1.HEIC" class="d-block w-100" alt="Tree 1">
+<img src="" class="d-block w-100" alt="Tree 1">
 </div>
 <div class="carousel-item">
 <img src="eevee2.HEIC" class="d-block w-100" alt="Tree 2">
