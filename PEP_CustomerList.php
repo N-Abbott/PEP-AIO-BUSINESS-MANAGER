@@ -10,49 +10,85 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
 $user_id = $_SESSION['user_id'];
 $success = $error = '';
 
-// Handle Update Quantity
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update_qty') {
-  $item_id = $_POST['item_id'];
-  $new_qty = $_POST['quantity'];
-  if ($new_qty > 0) {
-    $sql = "UPDATE shopping_lists SET quantity = ? WHERE id = ? AND user_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iii", $new_qty, $item_id, $user_id);
-    $stmt->execute();
-    $stmt->close();
-    $success = "Quantity updated!";
+// Handle Add to List (from catalog)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
+  $product_id = $_POST['product_id'];
+  $quantity = $_POST['quantity'] ?? 1;
+
+  $sql = "INSERT INTO customer_lists (user_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)";
+  $stmt = $conn->prepare($sql);
+  $stmt->bind_param("iii", $user_id, $product_id, $quantity);
+  if ($stmt->execute()) {
+    $success = "Item added to list!";
   } else {
-    $error = "Quantity must be greater than 0.";
+    $error = "Error adding item.";
   }
+  $stmt->close();
 }
 
-// Handle Remove Item
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'remove_item') {
+// Handle Update Quantity
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update') {
   $item_id = $_POST['item_id'];
-  $sql = "DELETE FROM shopping_lists WHERE id = ? AND user_id = ?";
+  $new_quantity = $_POST['new_quantity'];
+
+  if ($new_quantity > 0) {
+    $sql = "UPDATE customer_lists SET quantity = ? WHERE id = ? AND user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iii", $new_quantity, $item_id, $user_id);
+    if ($stmt->execute()) {
+      $success = "Quantity updated!";
+    } else {
+      $error = "Error updating quantity.";
+    }
+  } else {
+    // If quantity <=0, remove
+    $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $item_id, $user_id);
+    if ($stmt->execute()) {
+      $success = "Item removed!";
+    } else {
+      $error = "Error removing item.";
+    }
+  }
+  $stmt->close();
+}
+
+// Handle Remove
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'remove') {
+  $item_id = $_POST['item_id'];
+
+  $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("ii", $item_id, $user_id);
-  $stmt->execute();
+  if ($stmt->execute()) {
+    $success = "Item removed!";
+  } else {
+    $error = "Error removing item.";
+  }
   $stmt->close();
-  $success = "Item removed!";
 }
 
-// Fetch List
-$sql = "SELECT id, product_name, price, quantity FROM shopping_lists WHERE user_id = ?";
+// Fetch List Items
+$sql = "SELECT cl.id, cl.quantity, p.name, p.price FROM customer_lists cl JOIN products p ON cl.product_id = p.id WHERE cl.user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-
-$total = 0;
+$items = [];
+$total_pre_tax = 0;
 while ($row = $result->fetch_assoc()) {
-  $total += $row['price'] * $row['quantity'];
+  $row_total = $row['quantity'] * $row['price'];
+  $row['row_total'] = $row_total;
+  $total_pre_tax += $row_total;
+  $items[] = $row;
 }
-$tax_rate = 0.06625; // NJ sales tax 6.625%
-$tax = $total * $tax_rate;
-$grand_total = $total + $tax;
-
 $stmt->close();
+
+$tax_rate = 0.06625; // NJ sales tax 6.625%
+$tax = $total_pre_tax * $tax_rate;
+$total_post_tax = $total_pre_tax + $tax;
+
 $conn->close();
 ?>
 
@@ -76,48 +112,50 @@ $conn->close();
     <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
     <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
 
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Price</th>
-          <th>Quantity</th>
-          <th>Subtotal</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php 
-        $result->data_seek(0); // Reset result pointer
-        while ($row = $result->fetch_assoc()): ?>
+    <?php if (empty($items)): ?>
+      <p>Your shopping list is empty. Add items from the catalog!</p>
+    <?php else: ?>
+      <table class="table table-bordered">
+        <thead>
           <tr>
-            <td><?php echo htmlspecialchars($row['product_name']); ?></td>
-            <td>$<?php echo number_format($row['price'], 2); ?></td>
-            <td>
-              <form method="post" class="d-inline">
-                <input type="hidden" name="action" value="update_qty">
-                <input type="hidden" name="item_id" value="<?php echo $row['id']; ?>">
-                <input type="number" name="quantity" value="<?php echo $row['quantity']; ?>" min="1" style="width: 60px;">
-                <button type="submit" class="btn btn-sm btn-primary">Update</button>
-              </form>
-            </td>
-            <td>$<?php echo number_format($row['price'] * $row['quantity'], 2); ?></td>
-            <td>
-              <form method="post" class="d-inline">
-                <input type="hidden" name="action" value="remove_item">
-                <input type="hidden" name="item_id" value="<?php echo $row['id']; ?>">
-                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
-              </form>
-            </td>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+            <th>Actions</th>
           </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-    <div class="text-end">
-      <p>Subtotal: $<?php echo number_format($total, 2); ?></p>
-      <p>NJ Sales Tax (6.625%): $<?php echo number_format($tax, 2); ?></p>
-      <p><strong>Grand Total: $<?php echo number_format($grand_total, 2); ?></strong></p>
-    </div>
+        </thead>
+        <tbody>
+          <?php foreach ($items as $item): ?>
+            <tr>
+              <td><?php echo htmlspecialchars($item['name']); ?></td>
+              <td>$<?php echo number_format($item['price'], 2); ?></td>
+              <td>
+                <form action="PEP_CustomerList.php" method="post" class="d-inline">
+                  <input type="hidden" name="action" value="update">
+                  <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                  <input type="number" name="new_quantity" value="<?php echo $item['quantity']; ?>" min="0" style="width: 60px;">
+                  <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                </form>
+              </td>
+              <td>$<?php echo number_format($item['row_total'], 2); ?></td>
+              <td>
+                <form action="PEP_CustomerList.php" method="post" class="d-inline">
+                  <input type="hidden" name="action" value="remove">
+                  <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                  <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <div class="text-end">
+        <p><strong>Subtotal (pre-tax):</strong> $<?php echo number_format($total_pre_tax, 2); ?></p>
+        <p><strong>NJ Sales Tax (6.625%):</strong> $<?php echo number_format($tax, 2); ?></p>
+        <p><strong>Grand Total:</strong> $<?php echo number_format($total_post_tax, 2); ?></p>
+      </div>
+    <?php endif; ?>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -1,44 +1,4 @@
-<?php
-session_start();
-include 'config.php'; // DB connection if needed for add
-
-$success = $error = '';
-
-// Handle Add to List (only if logged in)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add_to_list' && isset($_SESSION['user_id'])) {
-  $user_id = $_SESSION['user_id'];
-  $product_name = $_POST['product_name'];
-  $price = $_POST['price'];
-  $quantity = 1; // Default
-
-  // Check if item already in list
-  $sql = "SELECT id, quantity FROM shopping_lists WHERE user_id = ? AND product_name = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("is", $user_id, $product_name);
-  $stmt->execute();
-  $stmt->bind_result($item_id, $existing_qty);
-  if ($stmt->fetch()) {
-    // Update quantity
-    $new_qty = $existing_qty + 1;
-    $sql_update = "UPDATE shopping_lists SET quantity = ? WHERE id = ?";
-    $stmt_update = $conn->prepare($sql_update);
-    $stmt_update->bind_param("ii", $new_qty, $item_id);
-    $stmt_update->execute();
-    $stmt_update->close();
-  } else {
-    // Insert new
-    $sql_insert = "INSERT INTO shopping_lists (user_id, product_name, price, quantity) VALUES (?, ?, ?, ?)";
-    $stmt_insert = $conn->prepare($sql_insert);
-    $stmt_insert->bind_param("isdi", $user_id, $product_name, $price, $quantity);
-    $stmt_insert->execute();
-    $stmt_insert->close();
-  }
-  $stmt->close();
-  $success = "Item added to list!";
-}
-
-$conn->close();
-?>
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -177,7 +137,7 @@ form .form-control {
 .list-btn {
   position: absolute;
   top: 10px;
-  right: 150px;
+  right: 120px; /* Positioned to the left of login button */
   z-index: 10;
   background-color: #2c5530;
   color: #fff;
@@ -191,11 +151,8 @@ form .form-control {
   <a href="PEP_CustomerList.php" class="btn btn-primary list-btn">My List</a>
 <?php else: ?>
   <button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
-  <button type="button" class="btn btn-primary list-btn" onclick="alert('You must create or sign into an account in order to create a shopping list'); document.querySelector('[data-bs-target=\"#loginModal\"]').click();">My List</button>
+  <button type="button" class="btn btn-primary list-btn" onclick="showListAlert()">My List</button>
 <?php endif; ?>
-<?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
-<?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
   <div class="container">
@@ -217,246 +174,47 @@ form .form-control {
     <h1 class="section-title">Our Catalog</h1>
     <p>Browse our selection of fresh evergreen trees, wreaths, poinsettias, and holiday decorations. Prices are approximate and depend on size/availability. Visit us for the full experience!</p>
     <div class="row">
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://images.thdstatic.com/productImages/b512c0d0-b83d-4679-92da-33d0464e77a0/svn/online-orchards-real-christmas-trees-chff506-64_600.jpg" class="card-img-top" alt="Fraser Fir Tree (Small)">
-          <div class="card-body text-center">
-            <h5 class="card-title">Fraser Fir Tree (Small, 5-6 ft)</h5>
-            <p class="card-text">Popular Christmas tree with strong branches and excellent needle retention. Perfect for smaller spaces.</p>
-            <p class="card-text">Price: $50 - $70</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Fraser Fir Tree (Small, 5-6 ft)">
-              <input type="hidden" name="price" value="60.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
+      <?php
+      $products = [
+        ['id' => 1, 'name' => 'Fraser Fir Tree (Small, 5-6 ft)', 'description' => 'Popular Christmas tree with strong branches and excellent needle retention. Perfect for smaller spaces.', 'price' => 60, 'image' => 'https://images.thdstatic.com/productImages/b512c0d0-b83d-4679-92da-33d0464e77a0/svn/online-orchards-real-christmas-trees-chff506-64_600.jpg'],
+        ['id' => 2, 'name' => 'Fraser Fir Tree (Medium, 7-8 ft)', 'description' => 'Ideal size for most homes, with dense foliage and a classic shape.', 'price' => 90, 'image' => 'https://images.thdstatic.com/productImages/0bfc24d3-54c4-4e24-8ab1-9faa36300873/svn/real-christmas-trees-496744-64_600.jpg'],
+        ['id' => 3, 'name' => 'Fraser Fir Tree (Large, 9+ ft)', 'description' => 'Grand statement piece with sturdy branches for heavy ornaments.', 'price' => 120, 'image' => 'https://www.kingofchristmas.com/cdn/shop/products/9-foot-king-fraser-fir-tree-unlit_12d81c95-5464-4e9f-a973-c62471349c52.jpg?v=1714672326&width=1242'],
+        ['id' => 4, 'name' => 'Douglas Fir Tree', 'description' => 'Soft needles and a pleasant citrus scent, great for families.', 'price' => 80, 'image' => 'https://thechristmastreestand.com/cdn/shop/products/DouglasFir.jpg?v=1603731400'],
+        ['id' => 5, 'name' => 'Blue Spruce Tree', 'description' => 'Striking blue-green needles and symmetrical shape.', 'price' => 105, 'image' => 'https://www.kingofchristmas.com/cdn/shop/files/TribecaSpruce_9435ba0f-6c63-4ca1-97ab-5e2cdca47270.jpg?v=1722014341'],
+        ['id' => 6, 'name' => 'Norway Spruce Tree', 'description' => 'Traditional tree with good needle retention when fresh-cut.', 'price' => 90, 'image' => 'https://hl-treefarm.com/wp-content/uploads/2010/11/10-18-Norway-Spruce-4-5.jpg'],
+        ['id' => 7, 'name' => 'White Pine Tree', 'description' => 'Long, soft needles and minimal fragrance, pet-friendly option.', 'price' => 70, 'image' => 'https://cdn.shopify.com/s/files/1/2441/3543/files/white_pine_480x480.jpg?v=1620242265'],
+        ['id' => 8, 'name' => 'Plain Holiday Wreath', 'description' => 'Fresh evergreen wreath, simple and elegant for doors or walls.', 'price' => 25, 'image' => 'https://www.palmdistributors.com/268-large_default/noble-fir-wreath.jpg'],
+        ['id' => 9, 'name' => 'Decorated Holiday Wreath', 'description' => 'Handmade with bows, pinecones, and berries for festive charm.', 'price' => 40, 'image' => 'https://i5.walmartimages.com/seo/Parvusli-24-inch-Christmas-Garland-Wreaths-with-Pine-Cones-Plaid-Bows-Red-Berry-Xmas-Wreaths_482ac599-e823-48c2-bf8b-149d23d74886.de332b4ea300b410fd3d5e8bdfcee19e.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF'],
+        ['id' => 10, 'name' => 'Large Decorated Wreath', 'description' => 'Oversized wreath with extra decorations for grand entrances.', 'price' => 50, 'image' => 'https://asset.bloomnation.com/c_pad,d_vendor:global:catalog:product:image.png,f_auto,fl_preserve_transparency,q_auto/v1702111537/vendor/1807/catalog/product/2/0/20151205113016_file_566373886068e.jpg'],
+        ['id' => 11, 'name' => 'Red Poinsettia', 'description' => 'Classic vibrant red blooms to brighten your holiday decor.', 'price' => 15, 'image' => 'https://hicksnurseries.com/wp-content/uploads/2022/02/red-poinsettia.jpg'],
+        ['id' => 12, 'name' => 'White Poinsettia', 'description' => 'Elegant white variety for a sophisticated holiday look.', 'price' => 15, 'image' => 'https://cdn.avasflowers.net/img/prod_img/avasflowers-white-poinsettia-plant--15981.jpg'],
+        ['id' => 13, 'name' => 'Grave Blanket', 'description' => 'Evergreen arrangement with decorations for memorial sites.', 'price' => 40, 'image' => 'https://i.etsystatic.com/59124332/r/il/14bb1b/7210554011/il_570xN.7210554011_ezpq.jpg'],
+        ['id' => 14, 'name' => 'White Pine Roping (25 ft)', 'description' => 'Fresh garland for mantels, railings, or outdoor decor.', 'price' => 25, 'image' => 'https://whitehousenursery.com/wp-content/uploads/2020/11/Garland-white-pine.jpg'],
+        ['id' => 15, 'name' => 'Holiday Trimmings Bundle', 'description' => 'Assorted fresh greens and branches for custom decorations.', 'price' => 15, 'image' => 'https://bedfordfields.com/cdn/shop/articles/Bedford-Fields-Blog-Post-Our-Secrets-to-Keeping-Holiday-Greens-_-Ideas-Freshh_600x600_crop_center.jpg?v=1731510435']
+      ];
+      foreach ($products as $product) {
+        echo '<div class="col-md-3 mb-4">
+          <div class="card bg-transparent border-0 product-card">
+            <img src="' . htmlspecialchars($product['image']) . '" class="card-img-top" alt="' . htmlspecialchars($product['name']) . '">
+            <div class="card-body text-center">
+              <h5 class="card-title">' . htmlspecialchars($product['name']) . '</h5>
+              <p class="card-text">' . htmlspecialchars($product['description']) . '</p>
+              <p class="card-text">Price: $' . number_format($product['price'], 2) . '</p>';
+        if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer') {
+          echo '<form action="PEP_CustomerList.php" method="post">
+            <input type="hidden" name="action" value="add">
+            <input type="hidden" name="product_id" value="' . $product['id'] . '">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn-success">Add to List</button>
+          </form>';
+        } else {
+          echo '<button type="button" class="btn btn-success" onclick="showListAlert()">Add to List</button>';
+        }
+        echo '</div>
           </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://images.thdstatic.com/productImages/0bfc24d3-54c4-4e24-8ab1-9faa36300873/svn/real-christmas-trees-496744-64_600.jpg" class="card-img-top" alt="Fraser Fir Tree (Medium)">
-          <div class="card-body text-center">
-            <h5 class="card-title">Fraser Fir Tree (Medium, 7-8 ft)</h5>
-            <p class="card-text">Ideal size for most homes, with dense foliage and a classic shape.</p>
-            <p class="card-text">Price: $80 - $100</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Fraser Fir Tree (Medium, 7-8 ft)">
-              <input type="hidden" name="price" value="90.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://www.kingofchristmas.com/cdn/shop/products/king-fraser-fir-king-of-christmas_12d81c95-5464-4e9f-a973-c62471349c52.jpg?v=1714672326&width=1242" class="card-img-top" alt="Fraser Fir Tree (Large)">
-          <div class="card-body text-center">
-            <h5 class="card-title">Fraser Fir Tree (Large, 9+ ft)</h5>
-            <p class="card-text">Grand statement piece with sturdy branches for heavy ornaments.</p>
-            <p class="card-text">Price: $110+</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Fraser Fir Tree (Large, 9+ ft)">
-              <input type="hidden" name="price" value="110.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://thechristmastreestand.com/cdn/shop/products/DouglasFir.jpg?v=1603731400" class="card-img-top" alt="Douglas Fir Tree">
-          <div class="card-body text-center">
-            <h5 class="card-title">Douglas Fir Tree</h5>
-            <p class="card-text">Soft needles and a pleasant citrus scent, great for families.</p>
-            <p class="card-text">Price: $40 - $120 depending on size</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Douglas Fir Tree">
-              <input type="hidden" name="price" value="80.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="http://www.kingofchristmas.com/cdn/shop/files/TribecaSpruce_9435ba0f-6c63-4ca1-97ab-5e2cdca47270.jpg?v=1722014341" class="card-img-top" alt="Blue Spruce Tree">
-          <div class="card-body text-center">
-            <h5 class="card-title">Blue Spruce Tree</h5>
-            <p class="card-text">Striking blue-green needles and symmetrical shape.</p>
-            <p class="card-text">Price: $60 - $150 depending on size</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Blue Spruce Tree">
-              <input type="hidden" name="price" value="105.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://hl-treefarm.com/wp-content/uploads/2010/11/10-18-Norway-Spruce-4-5.jpg" class="card-img-top" alt="Norway Spruce Tree">
-          <div class="card-body text-center">
-            <h5 class="card-title">Norway Spruce Tree</h5>
-            <p class="card-text">Traditional tree with good needle retention when fresh-cut.</p>
-            <p class="card-text">Price: $50 - $130 depending on size</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Norway Spruce Tree">
-              <input type="hidden" name="price" value="90.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://cdn.shopify.com/s/files/1/2441/3543/files/white_pine_480x480.jpg?v=1620242265" class="card-img-top" alt="White Pine Tree">
-          <div class="card-body text-center">
-            <h5 class="card-title">White Pine Tree</h5>
-            <p class="card-text">Long, soft needles and minimal fragrance, pet-friendly option.</p>
-            <p class="card-text">Price: $40 - $100 depending on size</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="White Pine Tree">
-              <input type="hidden" name="price" value="70.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://www.palmdistributors.com/268-large_default/noble-fir-wreath.jpg" class="card-img-top" alt="Plain Holiday Wreath">
-          <div class="card-body text-center">
-            <h5 class="card-title">Plain Holiday Wreath</h5>
-            <p class="card-text">Fresh evergreen wreath, simple and elegant for doors or walls.</p>
-            <p class="card-text">Price: $25</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Plain Holiday Wreath">
-              <input type="hidden" name="price" value="25.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://i5.walmartimages.com/asr/c0dd757a-7ac3-44f5-87e7-f690ca8d4949.f03d23dfa97acc3ddaf77d59219dba43.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF" class="card-img-top" alt="Decorated Holiday Wreath">
-          <div class="card-body text-center">
-            <h5 class="card-title">Decorated Holiday Wreath</h5>
-            <p class="card-text">Handmade with bows, pinecones, and berries for festive charm.</p>
-            <p class="card-text">Price: $35 - $45</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Decorated Holiday Wreath">
-              <input type="hidden" name="price" value="40.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://asset.bloomnation.com/c_pad,d_vendor:global:catalog:product:image.png,f_auto,fl_preserve_transparency,q_auto/v1702111537/vendor/1807/catalog/product/2/0/20151205113016_file_566373886068e.jpg" class="card-img-top" alt="Large Decorated Wreath">
-          <div class="card-body text-center">
-            <h5 class="card-title">Large Decorated Wreath</h5>
-            <p class="card-text">Oversized wreath with extra decorations for grand entrances.</p>
-            <p class="card-text">Price: $50</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Large Decorated Wreath">
-              <input type="hidden" name="price" value="50.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://hicksnurseries.com/wp-content/uploads/2022/02/red-poinsettia.jpg" class="card-img-top" alt="Red Poinsettia">
-          <div class="card-body text-center">
-            <h5 class="card-title">Red Poinsettia</h5>
-            <p class="card-text">Classic vibrant red blooms to brighten your holiday decor.</p>
-            <p class="card-text">Price: $10 - $20</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Red Poinsettia">
-              <input type="hidden" name="price" value="15.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://cdn.avasflowers.net/img/prod_img/avasflowers-white-poinsettia-plant--15981.jpg" class="card-img-top" alt="White Poinsettia">
-          <div class="card-body text-center">
-            <h5 class="card-title">White Poinsettia</h5>
-            <p class="card-text">Elegant white variety for a sophisticated holiday look.</p>
-            <p class="card-text">Price: $10 - $20</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="White Poinsettia">
-              <input type="hidden" name="price" value="15.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://tfloft.com/images/grave_blanket_2xg.jpg" class="card-img-top" alt="Grave Blanket">
-          <div class="card-body text-center">
-            <h5 class="card-title">Grave Blanket</h5>
-            <p class="card-text">Evergreen arrangement with decorations for memorial sites.</p>
-            <p class="card-text">Price: $30 - $50</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Grave Blanket">
-              <input type="hidden" name="price" value="40.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://whitehousenursery.com/wp-content/uploads/2020/11/Garland-white-pine.jpg" class="card-img-top" alt="White Pine Roping (25 ft)">
-          <div class="card-body text-center">
-            <h5 class="card-title">White Pine Roping (25 ft)</h5>
-            <p class="card-text">Fresh garland for mantels, railings, or outdoor decor.</p>
-            <p class="card-text">Price: $25</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="White Pine Roping (25 ft)">
-              <input type="hidden" name="price" value="25.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="card bg-transparent border-0 product-card">
-          <img src="https://cdn11.bigcommerce.com/s-p4l00/images/stencil/1280x1280/products/81/580/fresh-mix-christmas-evergreens-pine-balsam-cedar-decorate__53315.1726925719.jpg?c=2" class="card-img-top" alt="Holiday Trimmings Bundle">
-          <div class="card-body text-center">
-            <h5 class="card-title">Holiday Trimmings Bundle</h5>
-            <p class="card-text">Assorted fresh greens and branches for custom decorations.</p>
-            <p class="card-text">Price: $15</p>
-            <form method="post">
-              <input type="hidden" name="action" value="add_to_list">
-              <input type="hidden" name="product_name" value="Holiday Trimmings Bundle">
-              <input type="hidden" name="price" value="15.00">
-              <button type="submit" class="btn btn-primary" <?php if (!isset($_SESSION['user_id'])) echo 'onclick="alert(\'You must create or sign into an account in order to create a shopping list\'); document.querySelector(\'[data-bs-target=\\"#loginModal\\"]\').click(); return false;"'; ?>>Add to List</button>
-            </form>
-          </div>
-        </div>
-      </div>
+        </div>';
+      }
+      ?>
     </div>
   </div>
 </section>
@@ -486,6 +244,14 @@ const observer = new IntersectionObserver((entries, observer) => {
 sections.forEach(section => {
   observer.observe(section);
 });
+
+// Function for list alert and login modal
+function showListAlert() {
+  alert("You must create or sign into an account in order to create a shopping list");
+  const myModal = new bootstrap.Modal(document.getElementById('loginModal'));
+  myModal.show();
+  showCustomerLogin();
+}
 </script>
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
@@ -565,6 +331,7 @@ sections.forEach(section => {
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script>
 // Modal form toggle functions
 function showCustomerLogin() {
