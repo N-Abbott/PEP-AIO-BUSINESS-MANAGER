@@ -59,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   $email = $_POST['empEmail'];
   $password = $_POST['empPassword'];
 
-  $sql = "SELECT id, password_hash, role FROM users WHERE email = ? AND role IN ('employee', 'admin')"; // TODO: Update to empLogin table if exists
+  $sql = "SELECT id, password, role FROM employeeLogin WHERE email = ? AND role IN ('employee', 'admin')"; // TODO: Update to empLogin table if exists
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("s", $email);
   $stmt->execute();
@@ -87,6 +87,7 @@ $conn->close();
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@400;700&display=swap">
+<link rel="icon" type="image/png" href="tree.png">
 <style>
 html, body {
   width: 100%;
@@ -237,6 +238,7 @@ color: #fff;
 <body>
 <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
 <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
+
 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
   <a href="PEP_CustomerAccount.php" class="btn btn-primary login-btn">My Account</a>
 <?php else: ?>
@@ -261,16 +263,16 @@ color: #fff;
 <div id="heroCarousel" class="carousel slide hero-carousel animate-bottom" data-bs-ride="carousel">
 <div class="carousel-inner">
 <div class="carousel-item active">
-<img src="Carousel1.jpg" class="d-block w-100" alt="Family Picture">
+<img src="Carasel1.jpg" class="d-block w-100" alt="Family Picture">
 </div>
 <div class="carousel-item">
-<img src="Carousel2.jpg" class="d-block w-100" alt="Tree 2">
+<img src="Carasel5.jpg" class="d-block w-100" alt="Tree 2">
 </div>
 <div class="carousel-item">
-<img src="Carousel3.jpg" class="d-block w-100" alt="Tree 3">
+<img src="Carasel3.jpg" class="d-block w-100" alt="Tree 3">
 </div>
 <div class="carousel-item">
-<img src="Carousel4.jpg" class="d-block w-100" alt="Tree 4">
+<img src="Carasel4.jpg" class="d-block w-100" alt="Tree 4">
 </div>
 </div>
 <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
@@ -285,9 +287,9 @@ color: #fff;
 <section id="hours" class="py-5 bg-mid animate-left">
 <div class="container text-center">
 <h3 class="section-title">Operating Hours</h3>
-<p class="text-dark">Weekends: 9:00 AM - 5:00 PM</p>
-<p class="text-dark">Weekdays: Closed (Check for updates)</p>
-<p class="text-dark">Open seasonally starting the day after Thanksgiving.</p>
+<p class="text-dark">Fri - Sun: 9:00 AM - 5:00 PM</p>
+<p class="text-dark">Mon - Thurs: Closed (Check for updates)</p>
+<p class="text-dark">Open seasonally starting Black Friday.</p>
 </div>
 </section>
 <section id="gallery" class="py-5 animate-zoom">
@@ -295,19 +297,19 @@ color: #fff;
 <h3 class="section-title">Explore Our Farm</h3>
 <div class="row gallery-grid">
 <div class="col-md-3">
-<a href="PEP_AboutUs.html" class="btn btn-light btn-block">About Us</a>
+<a href="PEP_AboutUs.php" class="btn btn-light btn-block">About Us</a>
 </div>
 <div class="col-md-3">
-<a href="PEP_Catalog.html" class="btn btn-light btn-block">Catalog</a>
+<a href="PEP_Catalog.php" class="btn btn-light btn-block">Catalog</a>
 </div>
 <div class="col-md-3">
-<a href="PEP_Reviews.html" class="btn btn-light btn-block">Reviews</a>
+<a href="PEP_Reviews.php" class="btn btn-light btn-block">Reviews</a>
 </div>
 <div class="col-md-3">
-<a href="PEP_VisitUs.html" class="btn btn-light btn-block">Visit Us</a>
+<a href="PEP_VisitUs.php" class="btn btn-light btn-block">Visit Us</a>
 </div>
 <div class="col-md-3">
-<a href="PEP_ContactUs.html" class="btn btn-light btn-block">Contact</a>
+<a href="PEP_ContactUs.php" class="btn btn-light btn-block">Contact</a>
 </div>
 </div>
 </div>

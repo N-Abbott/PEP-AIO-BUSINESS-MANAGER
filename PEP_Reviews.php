@@ -144,12 +144,12 @@ form .form-control {
 </style>
 </head>
 <body>
-  <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
   <a href="PEP_CustomerAccount.php" class="btn btn-primary login-btn">My Account</a>
 <?php else: ?>
   <button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
 <?php endif; ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
   <div class="container">

@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 include 'config.php'; // DB connection
 
@@ -10,84 +14,107 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
 $user_id = $_SESSION['user_id'];
 $success = $error = '';
 
-// Handle Add to List (from catalog)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
-  $product_id = $_POST['product_id'];
-  $quantity = $_POST['quantity'] ?? 1;
+// Check for product_id column
+$check_column = $conn->query("SHOW COLUMNS FROM customer_lists LIKE 'product_id'");
+if ($check_column->num_rows == 0) {
+  $error = "Database setup error: 'product_id' column missing in customer_lists. Please recreate the table with the provided SQL.";
+}
 
-  $sql = "INSERT INTO customer_lists (user_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("iii", $user_id, $product_id, $quantity);
-  if ($stmt->execute()) {
-    $success = "Item added to list!";
-  } else {
-    $error = "Error adding item.";
+// Handle Add to List (from catalog) - AJAX friendly
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
+  try {
+    $product_id = $_POST['product_id'];
+    $quantity = $_POST['quantity'] ?? 1;
+
+    $sql = "INSERT INTO customer_lists (user_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iii", $user_id, $product_id, $quantity);
+    if ($stmt->execute()) {
+      echo "Item added to list!";
+    } else {
+      echo "Error adding item: " . $stmt->error;
+    }
+    $stmt->close();
+  } catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
   }
-  $stmt->close();
+  exit; // End response for AJAX
 }
 
 // Handle Update Quantity
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update') {
-  $item_id = $_POST['item_id'];
-  $new_quantity = $_POST['new_quantity'];
+  try {
+    $item_id = $_POST['item_id'];
+    $new_quantity = $_POST['new_quantity'];
 
-  if ($new_quantity > 0) {
-    $sql = "UPDATE customer_lists SET quantity = ? WHERE id = ? AND user_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iii", $new_quantity, $item_id, $user_id);
-    if ($stmt->execute()) {
-      $success = "Quantity updated!";
+    if ($new_quantity > 0) {
+      $sql = "UPDATE customer_lists SET quantity = ? WHERE id = ? AND user_id = ?";
+      $stmt = $conn->prepare($sql);
+      $stmt->bind_param("iii", $new_quantity, $item_id, $user_id);
+      if ($stmt->execute()) {
+        $success = "Quantity updated!";
+      } else {
+        $error = "Error updating quantity: " . $stmt->error;
+      }
     } else {
-      $error = "Error updating quantity.";
+      // If quantity <=0, remove
+      $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
+      $stmt = $conn->prepare($sql);
+      $stmt->bind_param("ii", $item_id, $user_id);
+      if ($stmt->execute()) {
+        $success = "Item removed!";
+      } else {
+        $error = "Error removing item: " . $stmt->error;
+      }
     }
-  } else {
-    // If quantity <=0, remove
+    $stmt->close();
+  } catch (Exception $e) {
+    $error = "Error: " . $e->getMessage();
+  }
+}
+
+// Handle Remove
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'remove') {
+  try {
+    $item_id = $_POST['item_id'];
+
     $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $item_id, $user_id);
     if ($stmt->execute()) {
       $success = "Item removed!";
     } else {
-      $error = "Error removing item.";
+      $error = "Error removing item: " . $stmt->error;
     }
+    $stmt->close();
+  } catch (Exception $e) {
+    $error = "Error: " . $e->getMessage();
   }
-  $stmt->close();
-}
-
-// Handle Remove
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'remove') {
-  $item_id = $_POST['item_id'];
-
-  $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("ii", $item_id, $user_id);
-  if ($stmt->execute()) {
-    $success = "Item removed!";
-  } else {
-    $error = "Error removing item.";
-  }
-  $stmt->close();
 }
 
 // Fetch List Items
-$sql = "SELECT cl.id, cl.quantity, p.name, p.price FROM customer_lists cl JOIN products p ON cl.product_id = p.id WHERE cl.user_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$items = [];
-$total_pre_tax = 0;
-while ($row = $result->fetch_assoc()) {
-  $row_total = $row['quantity'] * $row['price'];
-  $row['row_total'] = $row_total;
-  $total_pre_tax += $row_total;
-  $items[] = $row;
-}
-$stmt->close();
+try {
+  $sql = "SELECT cl.id, cl.quantity, p.name, p.price FROM customer_lists cl JOIN products p ON cl.product_id = p.id WHERE cl.user_id = ?";
+  $stmt = $conn->prepare($sql);
+  $stmt->bind_param("i", $user_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $items = [];
+  $total_pre_tax = 0;
+  while ($row = $result->fetch_assoc()) {
+    $row_total = $row['quantity'] * $row['price'];
+    $row['row_total'] = $row_total;
+    $total_pre_tax += $row_total;
+    $items[] = $row;
+  }
+  $stmt->close();
 
-$tax_rate = 0.06625; // NJ sales tax 6.625%
-$tax = $total_pre_tax * $tax_rate;
-$total_post_tax = $total_pre_tax + $tax;
+  $tax_rate = 0.06625; // NJ sales tax 6.625%
+  $tax = $total_pre_tax * $tax_rate;
+  $total_post_tax = $total_pre_tax + $tax;
+} catch (Exception $e) {
+  $error = "Error fetching list: " . $e->getMessage();
+}
 
 $conn->close();
 ?>

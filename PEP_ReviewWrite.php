@@ -1,3 +1,57 @@
+<?php 
+session_start();
+include 'config.php';
+
+// Ensure the user is logged in
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
+    echo "<script>
+            alert('You must be logged in to submit a review.');
+            window.location.href='PEP_Reviews.html';
+          </script>";
+    exit;
+}
+
+// Initialize feedback messages
+$success = $error = "";
+
+// Handle review submission
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['action'] === 'submit_review') {
+    #$name = ($_SESSION['fname'] ?? '') . ' ' . ($_SESSION['lname'] ?? '');
+    $name = trim($_POST['name'] ?? '');
+    $rating = intval($_POST['rating'] ?? 0);
+    $review = trim($_POST['comment'] ?? '');
+    $submitted_Date = date('Y-m-d H:i:s');
+    
+    echo "<pre style='background:#fee;padding:10px;border:1px solid #f00;'>";
+    echo "DEBUG:\n";
+    echo "Name: " . var_export($_POST['name'] ?? null, true) . "\n";
+    echo "Rating: " . var_export($_POST['rating'] ?? null, true) . "\n";
+    echo "Review: " . var_export($_POST['comment'] ?? null, true) . "\n";
+    echo "</pre>";
+
+    // Validate input
+    if (empty($name) || empty($rating) || empty($review)) {
+        $error = "All fields are required.";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO review (name, rating, review, submitted_Date) VALUES (?, ?, ?, NOW())");
+        $stmt->bind_param("sis", $name, $rating, $review);
+
+        if ($stmt->execute()) {
+            $success = "Review submitted successfully!";
+            echo "<script>
+                    alert('✅ Review submitted successfully!');
+                    window.location.href='PEP_Reviews.html';
+                  </script>";
+            exit;
+        } else {
+            $error = "Error submitting review: " . htmlspecialchars($stmt->error);
+        }
+
+        $stmt->close();
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,27 +134,38 @@
   <section id="write-review" class="py-5">
     <div class="container">
       <h1 class="section-title">Write Your Review</h1>
-      <form>
-        <div class="mb-3">
-          <label for="name" class="form-label">Your Name</label>
-          <input type="text" class="form-control" id="name" placeholder="Enter your name">
-        </div>
-        <div class="mb-3">
-          <label for="rating" class="form-label">Rating</label>
-          <select class="form-select" id="rating">
-            <option value="5">5 Stars</option>
-            <option value="4">4 Stars</option>
-            <option value="3">3 Stars</option>
-            <option value="2">2 Stars</option>
-            <option value="1">1 Star</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="comment" class="form-label">Your Review</label>
-          <textarea class="form-control" id="comment" rows="5" placeholder="Share your experience..."></textarea>
-        </div>
-        <button type="button" class="btn btn-primary" onclick="handleSubmitReview()">Publish</button>
-      </form>
+<form method="POST" action="">
+  <input type="hidden" name="action" value="submit_review">
+
+  <div class="mb-3">
+    <label for="name" class="form-label">Your Name</label>
+    <input type="text" class="form-control" id="name" name="name"
+           value="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>"
+           placeholder="Enter your name" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="rating" class="form-label">Rating</label>
+    <select class="form-select" id="rating" name="rating" required>
+      <option value="5">5 Stars</option>
+      <option value="4">4 Stars</option>
+      <option value="3">3 Stars</option>
+      <option value="2">2 Stars</option>
+      <option value="1">1 Star</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="comment" class="form-label">Your Review</label>
+    <textarea class="form-control" id="comment" name="comment" rows="5"
+              placeholder="Share your experience..." required></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Publish</button>
+</form>
+
+<?php if (!empty($error)) echo "<p class='text-danger'>$error</p>"; ?>
+<?php if (!empty($success)) echo "<p class='text-success'>$success</p>"; ?>
       <p class="mt-3 text-muted">Your review will be moderated before appearing on the site.</p>
     </div>
   </section>
