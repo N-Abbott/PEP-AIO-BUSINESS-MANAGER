@@ -183,6 +183,94 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   }
 }
 
+// Handle Add Product
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add_product') {
+  $name = $_POST['name'] ?? '';
+  $description = $_POST['description'] ?? '';
+  $price = $_POST['price'] ?? 0;
+  $stock_number = $_POST['stock_number'] ?? 0;
+  $image_path = '';
+
+  if (!empty($name) && !empty($description) && $price > 0) {
+    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+      $upload_dir = 'uploads/';
+      if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+      $image_path = $upload_dir . basename($_FILES['image']['name']);
+      if (move_uploaded_file($_FILES['image']['tmp_name'], $image_path)) {
+        // Image uploaded successfully
+      } else {
+        $error = "Error uploading image.";
+      }
+    }
+
+    if (!isset($error)) {
+      $stmt = $conn->prepare("INSERT INTO products (name, description, price, image, stock_number) VALUES (?, ?, ?, ?, ?)");
+      $stmt->bind_param("ssdsi", $name, $description, $price, $image_path, $stock_number);
+      if ($stmt->execute()) {
+        $success = "Product added successfully.";
+      } else {
+        $error = "Error adding product: " . $stmt->error;
+      }
+      $stmt->close();
+    }
+  } else {
+    $error = "All fields required.";
+  }
+}
+
+// Handle Update Product
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update_product') {
+  $id = $_POST['id'] ?? 0;
+  $name = $_POST['name'] ?? '';
+  $description = $_POST['description'] ?? '';
+  $price = $_POST['price'] ?? 0;
+  $stock_number = $_POST['stock_number'] ?? 0;
+  $image_path = $_POST['existing_image'] ?? '';
+
+  if ($id > 0 && !empty($name) && !empty($description) && $price > 0) {
+    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+      $upload_dir = 'uploads/';
+      if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+      $image_path = $upload_dir . basename($_FILES['image']['name']);
+      if (move_uploaded_file($_FILES['image']['tmp_name'], $image_path)) {
+        // New image uploaded
+      } else {
+        $error = "Error uploading image.";
+      }
+    }
+
+    if (!isset($error)) {
+      $stmt = $conn->prepare("UPDATE products SET name = ?, description = ?, price = ?, image = ?, stock_number = ? WHERE id = ?");
+      $stmt->bind_param("ssdsii", $name, $description, $price, $image_path, $stock_number, $id);
+      if ($stmt->execute()) {
+        $success = "Product updated successfully.";
+      } else {
+        $error = "Error updating product: " . $stmt->error;
+      }
+      $stmt->close();
+    }
+  } else {
+    $error = "All fields required.";
+  }
+}
+
+// Handle Delete Product
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'delete_product') {
+  $id = $_POST['id'] ?? 0;
+  if ($id > 0) {
+    $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    if ($stmt->execute()) {
+      $success = "Product deleted successfully.";
+    } else {
+      $error = "Error deleting product: " . $stmt->error;
+    }
+    $stmt->close();
+  } else {
+    $error = "Invalid product ID.";
+  }
+}
+
 // Fetch Employees
 $employees_sql = "SELECT id, email, role FROM employeeLogin";
 $employees_result = $conn->query($employees_sql);
@@ -192,6 +280,9 @@ $tasks_result = $conn->query("SELECT * FROM employee_tasks ORDER BY date");
 
 // Fetch Schedules
 $schedules_result = $conn->query("SELECT * FROM employee_schedules ORDER BY date");
+
+// Fetch Products
+$products_result = $conn->query("SELECT * FROM products");
 
 $conn->close();
 ?>
@@ -342,6 +433,9 @@ $conn->close();
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="customer-accounts-tab" data-bs-toggle="tab" data-bs-target="#customer-accounts" type="button" role="tab" aria-controls="customer-accounts" aria-selected="false"><i class="bi bi-people me-2"></i>Manage Customer Accounts</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button" role="tab" aria-controls="products" aria-selected="false"><i class="bi bi-box-seam me-2"></i>Edit Products</button>
       </li>
     </ul>
     <div class="tab-content" id="adminTabContent">
@@ -556,6 +650,109 @@ $conn->close();
               <?php endwhile; ?>
             <?php else: ?>
               <tr><td colspan="7" class="text-center">No customers found.</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="tab-pane fade" id="products" role="tabpanel" aria-labelledby="products-tab">
+        <h4 class="mt-3">Edit Products</h4>
+        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="add_product">
+          <div class="mb-3">
+            <label for="name" class="form-label">Product Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="price" class="form-label">Price</label>
+            <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+          </div>
+          <div class="mb-3">
+            <label for="stock_number" class="form-label">Stock Number</label>
+            <input type="number" class="form-control" id="stock_number" name="stock_number" required>
+          </div>
+          <div class="mb-3">
+            <label for="image" class="form-label">Image</label>
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Add Product</button>
+        </form>
+        <table class="table table-striped table-hover mt-3">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Image</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if ($products_result->num_rows > 0): ?>
+              <?php while ($product = $products_result->fetch_assoc()): ?>
+                <tr>
+                  <td><?php echo htmlspecialchars($product['id']); ?></td>
+                  <td><?php echo htmlspecialchars($product['name']); ?></td>
+                  <td><?php echo htmlspecialchars($product['description']); ?></td>
+                  <td>$<?php echo number_format($product['price'], 2); ?></td>
+                  <td><?php echo htmlspecialchars($product['stock_number']); ?></td>
+                  <td><img src="<?php echo htmlspecialchars($product['image']); ?>" alt="Product Image" style="width: 50px; height: auto;"></td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editProductModal<?php echo $product['id']; ?>"><i class="bi bi-pencil"></i> Edit</button>
+                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" style="display:inline;">
+                      <input type="hidden" name="action" value="delete_product">
+                      <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
+                      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this product?');"><i class="bi bi-trash"></i> Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                <!-- Edit Product Modal -->
+                <div class="modal fade" id="editProductModal<?php echo $product['id']; ?>" tabindex="-1" aria-labelledby="editProductLabel<?php echo $product['id']; ?>" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="editProductLabel<?php echo $product['id']; ?>">Edit Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
+                          <input type="hidden" name="action" value="update_product">
+                          <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
+                          <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($product['image']); ?>">
+                          <div class="mb-3">
+                            <label for="name<?php echo $product['id']; ?>" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name<?php echo $product['id']; ?>" name="name" value="<?php echo htmlspecialchars($product['name']); ?>" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="description<?php echo $product['id']; ?>" class="form-label">Description</label>
+                            <textarea class="form-control" id="description<?php echo $product['id']; ?>" name="description" required><?php echo htmlspecialchars($product['description']); ?></textarea>
+                          </div>
+                          <div class="mb-3">
+                            <label for="price<?php echo $product['id']; ?>" class="form-label">Price</label>
+                            <input type="number" step="0.01" class="form-control" id="price<?php echo $product['id']; ?>" name="price" value="<?php echo $product['price']; ?>" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="stock_number<?php echo $product['id']; ?>" class="form-label">Stock Number</label>
+                            <input type="number" class="form-control" id="stock_number<?php echo $product['id']; ?>" name="stock_number" value="<?php echo $product['stock_number']; ?>" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="image<?php echo $product['id']; ?>" class="form-label">New Image (optional)</label>
+                            <input type="file" class="form-control" id="image<?php echo $product['id']; ?>" name="image" accept="image/*">
+                          </div>
+                          <button type="submit" class="btn btn-primary">Update Product</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <?php endwhile; ?>
+            <?php else: ?>
+              <tr><td colspan="7" class="text-center">No products found.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
