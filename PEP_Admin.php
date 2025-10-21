@@ -415,6 +415,9 @@ $conn->close();
         <a class="nav-link" href="PEP_EmployeeTasks.php"><i class="bi bi-check2-square me-2"></i>View Tasks</a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" href="PEP_EmployeeSales.php"><i class="bi bi-cart me-2"></i>Input Sales</a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-left me-2"></i>Logout</a>
       </li>
     </ul>

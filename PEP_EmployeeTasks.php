@@ -143,6 +143,9 @@ $conn->close();
         <a class="nav-link active" href="PEP_EmployeeTasks.php"><i class="bi bi-check2-square me-2"></i>View Tasks</a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" href="PEP_EmployeeSales.php"><i class="bi bi-cart me-2"></i>Input Sales</a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#adminLoginModal"><i class="bi bi-lock me-2"></i>Admin Access</a>
       </li>
       <li class="nav-item">

@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
       } else {
         $_SESSION['cart'][$product_id] = $quantity;
       }
-      $success = "Item added to cart.";
+      // Removed success message for add to cart
     } else {
       $error = "Insufficient stock or invalid product.";
     }
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   $product_id = $_POST['product_id'] ?? 0;
   if ($product_id > 0 && isset($_SESSION['cart'][$product_id])) {
     unset($_SESSION['cart'][$product_id]);
-    $success = "Item removed from cart.";
+    // Removed success message for remove from cart
   }
 }
 
@@ -164,7 +164,6 @@ if (!empty($_SESSION['cart'])) {
   }
 }
 
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -414,3 +413,6 @@ $conn->close();
   </div>
 </body>
 </html>
+<?php
+$conn->close();
+?>
