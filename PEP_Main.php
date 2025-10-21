@@ -27,6 +27,7 @@ $conn->close();
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<?php if (isset($_SESSION['error'])) { echo "<div class='alert alert-danger'>".$_SESSION['error']."</div>"; unset($_SESSION['error']); } ?>
 <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
 <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
 
