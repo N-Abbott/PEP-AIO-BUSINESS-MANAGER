@@ -1,18 +1,21 @@
-/* styles.css */
+/* styles.css (updated: forced product card body text to black with !important) */
 
 html, body {
   width: 100%;
   overflow-x: hidden;
-  scroll-behavior: smooth;
 }
 body {
 font-family: 'Roboto', sans-serif;
 background-color: #f8f9fa;
 color: #333;
 }
+.banner-wrapper {
+  position: relative;
+}
 .banner {
 width: 100%;
 height: auto;
+display: block;
 }
 .navigation-bar {
 background-color: #2c5530;
@@ -94,19 +97,24 @@ height: 300px;
 object-fit: cover;
 }
 .product-card .card-body {
-color: #fff;
+color: #000 !important; /* Forced to black */
 }
 .product-card .card-title {
-color: #fff;
+color: #2c5530;
 }
-.login-btn {
+.login-btn, .list-btn {
   position: absolute;
   top: 10px;
-  right: 10px;
   z-index: 10;
-  background-color: #2c5530;
-  color: #fff;
-  border: none;
+  background-color: #2c5530 !important;
+  color: #fff !important;
+  border: none !important;
+}
+.login-btn {
+  right: 10px;
+}
+.list-btn {
+  right: 120px;
 }
 .review-card .card-body {
   color: #333;
