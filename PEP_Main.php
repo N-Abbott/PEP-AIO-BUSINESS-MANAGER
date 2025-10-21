@@ -1,4 +1,6 @@
 <?php
+// PEP_Main.php (modified: removed POST handling for login/signup, removed modal HTML and related scripts, changed login button to link to login.php with return param)
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -8,73 +10,7 @@ include 'config.php'; // Include DB connection
 
 $success = $error = '';
 
-// Handle Customer Sign Up
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'signup') {
-  $first_name = $_POST['fname'];
-  $last_name = $_POST['lname'];
-  $phone_number = $_POST['phone'];
-  $email_address = $_POST['email'];
-  $username = $_POST['username'];
-  $password = $_POST['password'];
-
-  // Hash password
-  $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-  // Insert into DB
-  $sql = "INSERT INTO custLogin (first_name, last_name, phone_number, email_address, username, password_hash) VALUES (?, ?, ?, ?, ?, ?)";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("ssssss", $first_name, $last_name, $phone_number, $email_address, $username, $password_hash);
-
-  if ($stmt->execute()) {
-    $success = "Account created! Please sign in.";
-  } else {
-    $error = "Error: Username or email already exists.";
-  }
-  $stmt->close();
-}
-
-// Handle Customer Login
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'customer_login') {
-  $username = $_POST['custUsername'];
-  $password = $_POST['custPassword'];
-
-  $sql = "SELECT id, password_hash FROM custLogin WHERE username = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("s", $username);
-  $stmt->execute();
-  $stmt->bind_result($id, $password_hash);
-  if ($stmt->fetch() && password_verify($password, $password_hash)) {
-    $_SESSION['user_id'] = $id;
-    $_SESSION['role'] = 'customer'; // Hardcoded since no role column
-    $success = "Login successful!";
-    header("Refresh:0"); // Refresh page to show My Account button immediately
-  } else {
-    $error = "Invalid credentials.";
-  }
-  $stmt->close();
-}
-
-// Handle Employee Login (similar, redirect to portal)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'employee_login') {
-  $email = $_POST['empEmail'];
-  $password = $_POST['empPassword'];
-
-  $sql = "SELECT id, password, role FROM employeeLogin WHERE email = ? AND role IN ('employee', 'admin')"; // TODO: Update to empLogin table if exists
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("s", $email);
-  $stmt->execute();
-  $stmt->bind_result($id, $password_hash, $role);
-  if ($stmt->fetch() && password_verify($password, $password_hash)) {
-    $_SESSION['user_id'] = $id;
-    $_SESSION['role'] = $role;
-    $success = "Login successful! Redirecting to portal...";
-    header("Location: PEP_EmployeeSchedule.php"); // Updated to .php
-    exit;
-  } else {
-    $error = "Invalid credentials.";
-  }
-  $stmt->close();
-}
+// No POST handling here anymore, as it's moved to login.php
 
 $conn->close();
 ?>
@@ -242,7 +178,7 @@ color: #fff;
 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
   <a href="PEP_CustomerAccount.php" class="btn btn-primary login-btn">My Account</a>
 <?php else: ?>
-  <button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
+  <a href="login.php?return=PEP_Main.php" class="btn btn-primary login-btn">Login / Sign Up</a>
 <?php endif; ?>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
@@ -380,84 +316,6 @@ color: #fff;
 <a href="#" style="color: #fff;">Home</a> | <a href="PEP_AboutUs.html" style="color: #fff;">About</a> | <a href="PEP_Catalog.html" style="color: #fff;">Catalog</a> | <a href="PEP_Reviews.html" style="color: #fff;">Reviews</a> | <a href="PEP_VisitUs.html" style="color: #fff;">Visit Us</a> | <a href="PEP_ContactUs.html" style="color: #fff;">Contact</a>
 </div>
 </footer>
-<!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="loginModalLabel">Login or Sign Up</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="text-center">
-          <button type="button" class="btn btn-primary mb-3" onclick="showCustomerLogin()">Customer Login / Sign Up</button>
-          <button type="button" class="btn btn-secondary mb-3" onclick="showEmployeeLogin()">Employee Login</button>
-        </div>
-        <div id="customerForm" style="display: none;">
-          <form action="PEP_Main.php" method="post" id="customerSignInForm">
-            <input type="hidden" name="action" value="customer_login">
-            <h6>Customer Sign In</h6>
-            <div class="mb-3">
-              <label for="custUsername" class="form-label">Username</label>
-              <input type="text" class="form-control" id="custUsername" name="custUsername" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="custPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="custPassword" name="custPassword" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
-            <p class="mt-2">Don't have an account? <a href="#" onclick="showSignUp()">Sign Up</a></p>
-          </form>
-          <form action="PEP_Main.php" method="post" id="customerSignUpForm" style="display: none;">
-            <input type="hidden" name="action" value="signup">
-            <h6>Customer Sign Up</h6>
-            <div class="mb-3">
-              <label for="fname" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="fname" name="fname" placeholder="First Name">
-            </div>
-            <div class="mb-3">
-              <label for="lname" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="lname" name="lname" placeholder="Last Name">
-            </div>
-            <div class="mb-3">
-              <label for="phone" class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number">
-            </div>
-            <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign Up</button>
-            <p class="mt-2">Already have an account? <a href="#" onclick="showSignIn()">Sign In</a></p>
-          </form>
-        </div>
-        <div id="employeeForm" style="display: none;">
-          <form action="PEP_Main.php" method="post">
-            <input type="hidden" name="action" value="employee_login">
-            <h6>Employee Sign In</h6>
-            <div class="mb-3">
-              <label for="empEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="empEmail" name="empEmail" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="empPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="empPassword" name="empPassword" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 <script>
 // Scroll animation observer
 const sections = document.querySelectorAll('.animate-bottom, .animate-left, .animate-zoom, .animate-right');
@@ -476,29 +334,6 @@ entry.target.classList.remove('visible');
 sections.forEach(section => {
 observer.observe(section);
     });
-
-// Modal form toggle functions
-function showCustomerLogin() {
-  document.getElementById('customerForm').style.display = 'block';
-  document.getElementById('employeeForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
-
-function showEmployeeLogin() {
-  document.getElementById('customerForm').style.display = 'none';
-  document.getElementById('employeeForm').style.display = 'block';
-}
-
-function showSignUp() {
-  document.getElementById('customerSignInForm').style.display = 'none';
-  document.getElementById('customerSignUpForm').style.display = 'block';
-}
-
-function showSignIn() {
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
