@@ -2,30 +2,24 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
 session_start();
 include 'config.php'; // DB connection
-
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
   header("Location: PEP_Main.php");
   exit;
 }
-
 $user_id = $_SESSION['user_id'];
 $success = $error = '';
-
 // Check for product_id column
 $check_column = $conn->query("SHOW COLUMNS FROM customer_lists LIKE 'product_id'");
 if ($check_column->num_rows == 0) {
   $error = "Database setup error: 'product_id' column missing in customer_lists. Please recreate the table with the provided SQL.";
 }
-
 // Handle Add to List (from catalog) - AJAX friendly
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
   try {
     $product_id = $_POST['product_id'];
     $quantity = $_POST['quantity'] ?? 1;
-
     $sql = "INSERT INTO customer_lists (user_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("iii", $user_id, $product_id, $quantity);
@@ -40,13 +34,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   }
   exit; // End response for AJAX
 }
-
 // Handle Update Quantity
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update') {
   try {
     $item_id = $_POST['item_id'];
     $new_quantity = $_POST['new_quantity'];
-
     if ($new_quantity > 0) {
       $sql = "UPDATE customer_lists SET quantity = ? WHERE id = ? AND user_id = ?";
       $stmt = $conn->prepare($sql);
@@ -72,12 +64,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $error = "Error: " . $e->getMessage();
   }
 }
-
 // Handle Remove
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'remove') {
   try {
     $item_id = $_POST['item_id'];
-
     $sql = "DELETE FROM customer_lists WHERE id = ? AND user_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $item_id, $user_id);
@@ -91,7 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $error = "Error: " . $e->getMessage();
   }
 }
-
 // Fetch List Items
 try {
   $sql = "SELECT cl.id, cl.quantity, p.name, p.price FROM customer_lists cl JOIN products p ON cl.product_id = p.id WHERE cl.user_id = ?";
@@ -100,25 +89,19 @@ try {
   $stmt->execute();
   $result = $stmt->get_result();
   $items = [];
-  $total_pre_tax = 0;
+  $total = 0;
   while ($row = $result->fetch_assoc()) {
     $row_total = $row['quantity'] * $row['price'];
     $row['row_total'] = $row_total;
-    $total_pre_tax += $row_total;
+    $total += $row_total;
     $items[] = $row;
   }
   $stmt->close();
-
-  $tax_rate = 0.06625; // NJ sales tax 6.625%
-  $tax = $total_pre_tax * $tax_rate;
-  $total_post_tax = $total_pre_tax + $tax;
 } catch (Exception $e) {
   $error = "Error fetching list: " . $e->getMessage();
 }
-
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -135,10 +118,8 @@ $conn->close();
   <div class="container mt-5">
     <a href="PEP_Catalog.php" class="btn btn-secondary mb-4">Back to Catalog</a>
     <h2 class="section-title">My Shopping List</h2>
-
     <?php if ($success) echo "<div class='alert alert-success'>$success</div>"; ?>
     <?php if ($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
-
     <?php if (empty($items)): ?>
       <p>Your shopping list is empty. Add items from the catalog!</p>
     <?php else: ?>
@@ -178,9 +159,7 @@ $conn->close();
         </tbody>
       </table>
       <div class="text-end">
-        <p><strong>Subtotal (pre-tax):</strong> $<?php echo number_format($total_pre_tax, 2); ?></p>
-        <p><strong>NJ Sales Tax (6.625%):</strong> $<?php echo number_format($tax, 2); ?></p>
-        <p><strong>Grand Total:</strong> $<?php echo number_format($total_post_tax, 2); ?></p>
+        <p><strong>Total:</strong> $<?php echo number_format($total, 2); ?></p>
       </div>
     <?php endif; ?>
   </div>

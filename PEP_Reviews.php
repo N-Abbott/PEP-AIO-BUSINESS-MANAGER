@@ -1,4 +1,10 @@
-<?php session_start(); ?>
+<?php
+// PEP_Reviews.php (updated: removed style tag, added link to styles.css, removed animation classes and JS observer)
+
+session_start(); // Start session for login state
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,148 +13,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@400;700&display=swap">
-<style>
-html, body {
-  width: 100%;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-}
-body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #f8f9fa;
-  color: #333;
-}
-.banner {
-  width: 100%;
-  height: auto;
-}
-.navigation-bar {
-  background-color: #2c5530;
-  padding: 10px 0;
-}
-.navigation-bar .nav-link {
-  color: #fff !important;
-  font-weight: 700;
-  margin: 0 20px;
-  text-decoration: underline;
-}
-.navigation-bar .tree-divider {
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  margin: 0 10px;
-  vertical-align: middle;
-}
-.section-title {
-  text-align: center;
-  margin-bottom: 40px;
-  color: #2c5530;
-  font-family: 'Oswald', sans-serif;
-  font-weight: 700;
-}
-h1, h2, h3, h4, .card-title {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 700;
-  color: #2c5530;
-}
-.card {
-  background-color: #fff;
-  color: #333;
-  border: 1px solid #e9ecef;
-}
-.bg-mid {
-  background-color: #e9ecef;
-}
-footer {
-  background-color: #2c5530;
-  color: #fff;
-  padding: 20px 0;
-}
-.animate-bottom {
-  opacity: 0;
-  transform: translateY(100px);
-  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
-}
-.animate-bottom.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-.animate-left {
-  opacity: 0;
-  transform: translateX(-100px);
-  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
-}
-.animate-left.visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-.animate-zoom {
-  opacity: 0;
-  transform: scale(0.8);
-  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
-}
-.animate-zoom.visible {
-  opacity: 1;
-  transform: scale(1);
-}
-.animate-right {
-  opacity: 0;
-  transform: translateX(100px);
-  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
-}
-.animate-right.visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-.gallery-grid a {
-  display: block;
-  margin-bottom: 20px;
-  background-color: #fff;
-  color: #333;
-  border: 1px solid #e9ecef;
-}
-.gallery-grid a:hover {
-  background-color: #2c5530;
-  color: #fff;
-}
-form .form-control {
-  background-color: #fff;
-  color: #333;
-  border: 1px solid #e9ecef;
-}
-.review-card .card-body {
-  color: #333;
-}
-.review-card .card-title {
-  color: #2c5530;
-}
-.stars {
-  color: #FFD700; /* Gold for stars */
-}
-.leave-review-btn {
-  background-color: #2c5530; /* Green button */
-  color: #fff;
-  font-size: 1.5rem;
-  padding: 15px 30px;
-  border: none;
-}
-.login-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  background-color: #2c5530;
-  color: #fff;
-  border: none;
-}
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
   <a href="PEP_CustomerAccount.php" class="btn btn-primary login-btn">My Account</a>
 <?php else: ?>
-  <button type="button" class="btn btn-primary login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login / Sign Up</button>
+  <a href="login.php?return=PEP_Reviews.php" class="btn btn-primary login-btn">Login / Sign Up</a>
 <?php endif; ?>
 <img src="Banner_Logo.png" class="img-fluid banner" alt="Banner Logo">
 <div class="navigation-bar">
@@ -166,73 +37,53 @@ form .form-control {
     </div>
   </div>
 </div>
-<section id="reviews" class="py-5 animate-bottom">
+<section id="reviews" class="py-5">
   <div class="container">
     <h1 class="section-title">Customer Reviews</h1>
     <p>Read what our customers have to say about their experiences at Petrongolo Evergreen Plantation. Your feedback helps us grow!</p>
   </div>
 </section>
-<section id="submit-review" class="py-5 bg-mid animate-left">
+<section id="submit-review" class="py-5 bg-mid">
   <div class="container text-center">
-    <button type="button" class="btn leave-review-btn" onclick="handleLeaveReview()">Leave A Review</button>
+    <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'customer'): ?>
+      <a href="PEP_ReviewWrite.php" class="btn leave-review-btn">Leave A Review</a>
+    <?php else: ?>
+      <a href="login.php?return=PEP_ReviewWrite.php" class="btn leave-review-btn">Leave A Review</a>
+    <?php endif; ?>
     <p class="mt-3 text-muted">Note: Reviews are moderated before posting. You must be logged in to submit.</p>
   </div>
 </section>
-<section id="display-reviews" class="py-5 animate-zoom">
+<section id="customer-reviews" class="py-5">
   <div class="container">
-    <h2 class="section-title">Recent Reviews</h2>
+    <h2 class="section-title">What Our Customers Say</h2>
     <div class="row">
-      <div class="col-md-6 mb-4">
+      <div class="col-md-4 mb-4">
         <div class="card review-card">
-          <div class="card-body">
+          <div class="card-body text-center">
             <h5 class="card-title">John Doe</h5>
             <p class="stars">★★★★★</p>
-            <p class="text-muted">October 1, 2025</p>
-            <p>Great selection of trees and friendly staff! We found the perfect Fraser Fir for our home.</p>
+            <p class="card-text">"Best Christmas tree farm around! The staff is friendly, and the trees are fresh and beautiful."</p>
           </div>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
+      <div class="col-md-4 mb-4">
         <div class="card review-card">
-          <div class="card-body">
+          <div class="card-body text-center">
             <h5 class="card-title">Jane Smith</h5>
             <p class="stars">★★★★☆</p>
-            <p class="text-muted">September 15, 2025</p>
-            <p>Beautiful farm and nice wreaths. A bit crowded on weekends, but worth it!</p>
+            <p class="card-text">"Great selection of wreaths and poinsettias. We'll be back next year!"</p>
           </div>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
+      <div class="col-md-4 mb-4">
         <div class="card review-card">
-          <div class="card-body">
+          <div class="card-body text-center">
             <h5 class="card-title">Mike Johnson</h5>
             <p class="stars">★★★★★</p>
-            <p class="text-muted">December 10, 2024</p>
-            <p>Family tradition to visit every year. Hayrides and hot chocolate make it special.</p>
+            <p class="card-text">"Family tradition for years. Love the hayrides and hot chocolate!"</p>
           </div>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
-        <div class="card review-card">
-          <div class="card-body">
-            <h5 class="card-title">Emily Davis</h5>
-            <p class="stars">★★★★★</p>
-            <p class="text-muted">November 28, 2024</p>
-            <p>Best poinsettias around! Vibrant colors and healthy plants.</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="card review-card">
-          <div class="card-body">
-            <h5 class="card-title">Leela B.</h5>
-            <p class="stars">★★★★★</p>
-            <p class="text-muted">December 5, 2020</p>
-            <p>This is the place for both a great tree-picking experience and a great Christmas tree. We've been going here for years!</p>
-          </div>
-        </div>
-      </div>
-      <!-- Add more placeholder reviews as needed -->
     </div>
   </div>
 </section>
@@ -240,256 +91,9 @@ form .form-control {
   <p><a href="https://www.facebook.com/p/Petrongolo-Evergreen-Plantation-100064604442455/" target="_blank" style="color: #fff;">Facebook</a> | Email: info@petrongolo.com | Phone: (609) 567-0336</p>
   <p>&copy; 2025 Petrongolo Evergreen Plantation. All rights reserved.</p>
   <div>
-    <a href="PEP_Main.html" style="color: #fff;">Home</a> | <a href="PEP_AboutUs.html" style="color: #fff;">About</a> | <a href="PEP_Catalog.html" style="color: #fff;">Catalog</a> | <a href="#" style="color: #fff;">Reviews</a> | <a href="PEP_VisitUs.html" style="color: #fff;">Visit Us</a> | <a href="PEP_ContactUs.html" style="color: #fff;">Contact</a>
+    <a href="PEP_Main.php" style="color: #fff;">Home</a> | <a href="PEP_AboutUs.php" style="color: #fff;">About</a> | <a href="PEP_Catalog.php" style="color: #fff;">Catalog</a> | <a href="#" style="color: #fff;">Reviews</a> | <a href="PEP_VisitUs.php" style="color: #fff;">Visit Us</a> | <a href="PEP_ContactUs.php" style="color: #fff;">Contact</a>
   </div>
 </footer>
-<!-- Login Modal (copied from main page for prompt if not logged in) -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="loginModalLabel">Login or Sign Up to Leave a Review</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="text-center">
-          <button type="button" class="btn btn-primary mb-3" onclick="showCustomerLogin()">Customer Login / Sign Up</button>
-          <button type="button" class="btn btn-secondary mb-3" onclick="showEmployeeLogin()">Employee Login</button>
-          <button type="button" class="btn btn-warning mt-2" onclick="bypassToReviewWrite()">Test Bypass to Review Write</button>
-        </div>
-        <div id="customerForm" style="display: none;">
-          <form id="customerSignInForm">
-            <h6>Customer Sign In</h6>
-            <div class="mb-3">
-              <label for="custUsername" class="form-label">Username</label>
-              <input type="text" class="form-control" id="custUsername" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="custPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="custPassword" placeholder="Password">
-            </div>
-            <button type="button" class="btn btn-primary" onclick="handleCustomerSignInReview()">Sign In</button>
-            <p class="mt-2">Don't have an account? <a href="#" onclick="showSignUp()">Sign Up</a></p>
-          </form>
-          <form id="customerSignUpForm" style="display: none;">
-            <h6>Customer Sign Up</h6>
-            <div class="mb-3">
-              <label for="fname" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="fname" placeholder="First Name">
-            </div>
-            <div class="mb-3">
-              <label for="lname" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="lname" placeholder="Last Name">
-            </div>
-            <div class="mb-3">
-              <label for="phone" class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" id="phone" placeholder="Phone Number">
-            </div>
-            <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" placeholder="Password">
-            </div>
-            <button type="button" class="btn btn-primary" onclick="handleSignUpReview()">Sign Up</button>
-            <p class="mt-2">Already have an account? <a href="#" onclick="showSignIn()">Sign In</a></p>
-          </form>
-        </div>
-        <div id="employeeForm" style="display: none;">
-          <form>
-            <h6>Employee Sign In</h6>
-            <div class="mb-3">
-              <label for="empEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="empEmail" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="empPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="empPassword" placeholder="Password">
-            </div>
-            <button type="button" class="btn btn-primary" onclick="handleEmployeeSignInReview()">Sign In</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-// Scroll animation observer
-const sections = document.querySelectorAll('.animate-bottom, .animate-left, .animate-zoom, .animate-right');
-const options = {
-  threshold: 0.1
-};
-const observer = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-    } else {
-      entry.target.classList.remove('visible');
-    }
-  });
-}, options);
-sections.forEach(section => {
-  observer.observe(section);
-});
-
-// Leave review button logic
-function handleLeaveReview() {
-  // Simulate not logged in - open modal (later check token)
-  var myModal = new bootstrap.Modal(document.getElementById('loginModal'));
-  myModal.show();
-}
-
-// Modal functions (same as main page, but redirects to review write after login)
-function showCustomerLogin() {
-  document.getElementById('customerForm').style.display = 'block';
-  document.getElementById('employeeForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
-
-function showEmployeeLogin() {
-  document.getElementById('customerForm').style.display = 'none';
-  document.getElementById('employeeForm').style.display = 'block';
-}
-
-function showSignUp() {
-  document.getElementById('customerSignInForm').style.display = 'none';
-  document.getElementById('customerSignUpForm').style.display = 'block';
-}
-
-function showSignIn() {
-  document.getElementById('customerSignUpForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-}
-
-function handleCustomerSignInReview() {
-  alert('Customer sign in successful! Redirecting to write review... (Static placeholder)');
-  bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-  window.location.href = 'PEP_ReviewWrite.php';
-}
-
-function handleSignUpReview() {
-  alert('Sign up successful! Please sign in to continue. (Static placeholder)');
-  showSignIn();
-}
-
-function handleEmployeeSignInReview() {
-  alert('Employee sign in successful! Redirecting to write review... (Static placeholder)');
-  bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-  window.location.href = 'PEP_ReviewWrite.php';
-}
-
-function bypassToReviewWrite() {
-  window.location.href = 'PEP_ReviewWrite.php';
-}
-</script>
-<!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="loginModalLabel">Login or Sign Up</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="text-center">
-          <button type="button" class="btn btn-primary mb-3" onclick="showCustomerLogin()">Customer Login / Sign Up</button>
-          <button type="button" class="btn btn-secondary mb-3" onclick="showEmployeeLogin()">Employee Login</button>
-        </div>
-        <div id="customerForm" style="display: none;">
-          <form action="PEP_Main.php" method="post" id="customerSignInForm">
-            <input type="hidden" name="action" value="customer_login">
-            <h6>Customer Sign In</h6>
-            <div class="mb-3">
-              <label for="custUsername" class="form-label">Username</label>
-              <input type="text" class="form-control" id="custUsername" name="custUsername" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="custPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="custPassword" name="custPassword" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
-            <p class="mt-2">Don't have an account? <a href="#" onclick="showSignUp()">Sign Up</a></p>
-          </form>
-          <form action="PEP_Main.php" method="post" id="customerSignUpForm" style="display: none;">
-            <input type="hidden" name="action" value="signup">
-            <h6>Customer Sign Up</h6>
-            <div class="mb-3">
-              <label for="fname" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="fname" name="fname" placeholder="First Name">
-            </div>
-            <div class="mb-3">
-              <label for="lname" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="lname" name="lname" placeholder="Last Name">
-            </div>
-            <div class="mb-3">
-              <label for="phone" class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number">
-            </div>
-            <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" placeholder="Username">
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign Up</button>
-            <p class="mt-2">Already have an account? <a href="#" onclick="showSignIn()">Sign In</a></p>
-          </form>
-        </div>
-        <div id="employeeForm" style="display: none;">
-          <form action="PEP_Main.php" method="post">
-            <input type="hidden" name="action" value="employee_login">
-            <h6>Employee Sign In</h6>
-            <div class="mb-3">
-              <label for="empEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="empEmail" name="empEmail" placeholder="Email">
-            </div>
-            <div class="mb-3">
-              <label for="empPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="empPassword" name="empPassword" placeholder="Password">
-            </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-// Modal form toggle functions
-function showCustomerLogin() {
-  document.getElementById('customerForm').style.display = 'block';
-  document.getElementById('employeeForm').style.display = 'none';
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
-
-function showEmployeeLogin() {
-  document.getElementById('customerForm').style.display = 'none';
-  document.getElementById('employeeForm').style.display = 'block';
-}
-
-function showSignUp() {
-  document.getElementById('customerSignInForm').style.display = 'none';
-  document.getElementById('customerSignUpForm').style.display = 'block';
-}
-
-function showSignIn() {
-  document.getElementById('customerSignInForm').style.display = 'block';
-  document.getElementById('customerSignUpForm').style.display = 'none';
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
