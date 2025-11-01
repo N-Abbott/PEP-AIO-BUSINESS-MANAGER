@@ -55,16 +55,16 @@ $conn->close();
 <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
 <div class="carousel-inner">
 <div class="carousel-item active">
-<img src="Carasel1.jpg" class="d-block w-100" alt="Family Picture">
+<img src="pictures/Carasel1.jpg" class="d-block w-100" alt="Family Picture">
 </div>
 <div class="carousel-item">
-<img src="Carasel5.jpg" class="d-block w-100" alt="Tree 2">
+<img src="pictures/Carasel2.jpg" class="d-block w-100" alt="Tree 2">
 </div>
 <div class="carousel-item">
-<img src="Carasel3.jpg" class="d-block w-100" alt="Tree 3">
+<img src="pictures/Carasel3.jpg" class="d-block w-100" alt="Tree 3">
 </div>
 <div class="carousel-item">
-<img src="Carasel4.jpg" class="d-block w-100" alt="Tree 4">
+<img src="pictures/Carasel4.jpg" class="d-block w-100" alt="Tree 4">
 </div>
 </div>
 <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">

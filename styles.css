@@ -1,139 +1,64 @@
-/* styles.css (updated: forced product card body text to black with !important) */
-
+/* styles.css (updated: Hot Sellers text forced to white) */
 html, body {
   width: 100%;
   overflow-x: hidden;
 }
 body {
-font-family: 'Roboto', sans-serif;
-background-color: #f8f9fa;
-color: #333;
-}
-.banner-wrapper {
-  position: relative;
-}
-.banner {
-width: 100%;
-height: auto;
-display: block;
-}
-.navigation-bar {
-background-color: #2c5530;
-padding: 10px 0;
-}
-.navigation-bar .nav-link {
-color: #fff !important;
-font-weight: 700;
-margin: 0 20px;
-text-decoration: underline;
-}
-.navigation-bar .tree-divider {
-height: 20px;
-width: 20px;
-border-radius: 50%;
-margin: 0 10px;
-vertical-align: middle;
-}
-.hero-carousel .carousel-item img {
-height: 80vh;
-object-fit: cover;
-}
-.section-title {
-text-align: center;
-margin-bottom: 40px;
-color: #2c5530;
-font-family: 'Oswald', sans-serif;
-font-weight: 700;
-}
-h1, h2, h3, h4, .card-title {
-font-family: 'Oswald', sans-serif;
-font-weight: 700;
-color: #2c5530;
-}
-.card {
-background-color: #fff;
-color: #333;
-border: 1px solid #e9ecef;
-}
-.bg-mid {
-background-color: #e9ecef;
-}
-footer {
-background-color: #2c5530;
-color: #fff;
-padding: 20px 0;
-}
-.cta-section {
-text-align: center;
-padding: 40px 0;
-background-color: #2c5530;
-color: #fff;
-}
-.cta-section a {
-background-color: #fff;
-color: #2c5530;
-}
-.cta-section a:hover {
-background-color: #e9ecef;
-}
-.gallery-grid a {
-display: block;
-margin-bottom: 20px;
-background-color: #fff;
-color: #333;
-border: 1px solid #e9ecef;
-}
-.gallery-grid a:hover {
-background-color: #2c5530;
-color: #fff;
-}
-form .form-control {
-background-color: #fff;
-color: #333;
-border: 1px solid #e9ecef;
-}
-.product-card img {
-height: 300px;
-object-fit: cover;
-}
-.product-card .card-body {
-color: #000 !important; /* Forced to black */
-}
-.product-card .card-title {
-color: #2c5530;
-}
-.login-btn, .list-btn {
-  position: absolute;
-  top: 10px;
-  z-index: 10;
-  background-color: #2c5530 !important;
-  color: #fff !important;
-  border: none !important;
-}
-.login-btn {
-  right: 10px;
-}
-.list-btn {
-  right: 120px;
-}
-.review-card .card-body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #f8f9fa;
   color: #333;
 }
-.review-card .card-title {
-  color: #2c5530;
-}
-.stars {
-  color: #FFD700; /* Gold for stars */
-}
-.leave-review-btn {
-  background-color: #2c5530; /* Green button */
+.banner-wrapper { position: relative; }
+.banner { width: 100%; height: auto; display: block; }
+.navigation-bar { background-color: #2c5530; padding: 10px 0; }
+.navigation-bar .nav-link { color: #fff !important; font-weight: 700; margin: 0 20px; text-decoration: underline; }
+.navigation-bar .tree-divider { height: 20px; width: 20px; border-radius: 50%; margin: 0 10px; vertical-align: middle; }
+
+.hero-carousel .carousel-item img { height: 80vh; object-fit: cover; }
+.section-title { text-align: center; margin-bottom: 40px; color: #2c5530; font-family: 'Oswald', sans-serif; font-weight: 700; }
+
+h1, h2, h3, h4, .card-title { font-family: 'Oswald', sans-serif; font-weight: 700; color: #2c5530; }
+
+.card { background-color: #fff; color: #333; border: 1px solid #e9ecef; }
+.bg-mid { background-color: #e9ecef; }
+
+footer { background-color: #2c5530; color: #fff; padding: 20px 0; }
+
+.cta-section {
+  text-align: center;
+  padding: 40px 0;
+  background-color: #2c5530;
   color: #fff;
-  font-size: 1.5rem;
-  padding: 15px 30px;
-  border: none;
 }
-iframe {
-  width: 100%;
-  height: 450px;
-  border: 0;
+.cta-section a { background-color: #fff; color: #2c5530; }
+.cta-section a:hover { background-color: #e9ecef; }
+
+.gallery-grid a { display: block; margin-bottom: 20px; background-color: #fff; color: #333; border: 1px solid #e9ecef; }
+.gallery-grid a:hover { background-color: #2c5530; color: #fff; }
+
+form .form-control { background-color: #fff; color: #333; border: 1px solid #e9ecef; }
+
+.product-card img { height: 300px; object-fit: cover; }
+.product-card .card-body { color: #000 !important; }          /* old – kept for other cards */
+.product-card .card-title { color: #2c5530; }
+
+.login-btn, .list-btn {
+  position: absolute; top: 10px; z-index: 10;
+  background-color: #2c5530 !important; color: #fff !important; border: none !important;
+}
+.login-btn { right: 10px; }
+.list-btn { right: 120px; }
+
+.review-card .card-body { color: #333; }
+.review-card .card-title { color: #2c5530; }
+.stars { color: #FFD700; }
+.leave-review-btn { background-color: #2c5530; color: #fff; font-size: 1.5rem; padding: 15px 30px; border: none; }
+
+iframe { width: 100%; height: 450px; border: 0; }
+
+/* ──────────────────────── NEW: Hot Sellers text ──────────────────────── */
+.cta-section .product-card .card-body,
+.cta-section .product-card .card-title,
+.cta-section .product-card .card-text {
+  color: #fff !important;          /* forces all text white */
 }

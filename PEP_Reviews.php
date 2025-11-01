@@ -1,8 +1,12 @@
 <?php
-// PEP_Reviews.php (updated: removed style tag, added link to styles.css, removed animation classes and JS observer)
-
 session_start(); // Start session for login state
+include 'config.php'; // Include database connection
 
+// Fetch reviews from database
+$reviews_sql = "SELECT * FROM review ORDER BY submitted_Date DESC";
+$reviews_result = $conn->query($reviews_sql);
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -57,33 +61,26 @@ session_start(); // Start session for login state
   <div class="container">
     <h2 class="section-title">What Our Customers Say</h2>
     <div class="row">
-      <div class="col-md-4 mb-4">
-        <div class="card review-card">
-          <div class="card-body text-center">
-            <h5 class="card-title">John Doe</h5>
-            <p class="stars">★★★★★</p>
-            <p class="card-text">"Best Christmas tree farm around! The staff is friendly, and the trees are fresh and beautiful."</p>
+      <?php if ($reviews_result->num_rows > 0): ?>
+        <?php while ($row = $reviews_result->fetch_assoc()): ?>
+          <div class="col-md-4 mb-4">
+            <div class="card review-card">
+              <div class="card-body text-center">
+                <h5 class="card-title"><?php echo htmlspecialchars($row['name']); ?></h5>
+                <p class="stars"><?php echo str_repeat('★', $row['rating']) . str_repeat('☆', 5 - $row['rating']); ?></p>
+                <p class="card-text">"<?php echo htmlspecialchars($row['review']); ?>"</p>
+                <?php if (!empty($row['reply'])): ?>
+                  <p class="card-text"><strong>Admin Reply:</strong> "<?php echo htmlspecialchars($row['reply']); ?>"</p>
+                <?php endif; ?>
+              </div>
+            </div>
           </div>
+        <?php endwhile; ?>
+      <?php else: ?>
+        <div class="col-12 text-center">
+          <p>No reviews yet. Be the first to leave one!</p>
         </div>
-      </div>
-      <div class="col-md-4 mb-4">
-        <div class="card review-card">
-          <div class="card-body text-center">
-            <h5 class="card-title">Jane Smith</h5>
-            <p class="stars">★★★★☆</p>
-            <p class="card-text">"Great selection of wreaths and poinsettias. We'll be back next year!"</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4 mb-4">
-        <div class="card review-card">
-          <div class="card-body text-center">
-            <h5 class="card-title">Mike Johnson</h5>
-            <p class="stars">★★★★★</p>
-            <p class="card-text">"Family tradition for years. Love the hayrides and hot chocolate!"</p>
-          </div>
-        </div>
-      </div>
+      <?php endif; ?>
     </div>
   </div>
 </section>
