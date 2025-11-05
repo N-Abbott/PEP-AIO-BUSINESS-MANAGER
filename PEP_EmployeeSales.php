@@ -67,6 +67,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
   }
 }
 
+// Get optional customer email
+$customer_email = isset($_POST['customer_email']) ? trim($_POST['customer_email']) : null;
+
 // Handle Checkout Cash
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'checkout_cash') {
   if (!empty($_SESSION['cart'])) {
@@ -94,8 +97,85 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         }
       }
       $conn->commit();
+
+      // Email receipt if address provided
+      if (!empty($customer_email)) {
+
+    $payment_method = 'Cash';
+    $subject = "Your Purchase Receipt from Petrongolo Evergreen Plantation";
+
+    $message = "
+    <html>
+    <body style='font-family: Arial, sans-serif; background-color:#f8f9fa; padding:20px;'>
+      <div style='max-width:600px; margin:auto; background:#fff; border:1px solid #ddd; border-radius:10px; padding:20px;'>
+        <h2 style='color:#2c5530;'>Thank you for your purchase!</h2>
+        <p>Here are your order details:</p>
+        <table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse: collapse; text-align:center;'>
+          <tr style='background-color:#2c5530; color:white;'>
+            <th>Product</th><th>Quantity</th><th>Price</th><th>Subtotal</th>
+          </tr>";
+
+    $total_all = 0;
+
+    // Combine duplicate items to show correct quantities
+    $cart_items = [];
+    foreach ($_SESSION['cart'] as $product_id => $quantity) {
+        $cart_items[$product_id] = ($cart_items[$product_id] ?? 0) + $quantity;
+    }
+
+    foreach ($cart_items as $product_id => $quantity) {
+        $stmt = $conn->prepare("SELECT name, price FROM products WHERE id = ?");
+        $stmt->bind_param("i", $product_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $product = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($product) {
+            $line_total = $product['price'] * $quantity;
+            $total_all += $line_total;
+
+            $message .= "<tr>
+                <td>" . htmlspecialchars($product['name']) . "</td>
+                <td>" . intval($quantity) . "</td>
+                <td>$" . number_format($product['price'], 2) . "</td>
+                <td>$" . number_format($line_total, 2) . "</td>
+            </tr>";
+        }
+    }
+
+    $message .= "
+        </table>
+        <p style='margin-top:15px; font-size:16px;'><strong>Total:</strong> $" . number_format($total_all, 2) . "</p>
+        <p><strong>Payment Method:</strong> {$payment_method}</p>
+        <p><strong>Date:</strong> " . date("Y-m-d H:i:s") . "</p>
+        <p style='color:#2c5530;'>We appreciate your business!</p>
+        <hr>
+        <p style='font-size:0.9em;color:#555;'>Petrongolo Evergreen Plantation<br>
+        noreply@petrongoloevergreenplantation.com</p>
+      </div>
+    </body>
+    </html>";
+
+    // Proper headers
+    $headers  = "From: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Reply-To: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+
+    if (mail($customer_email, $subject, $message, $headers)) {
+        $success .= " Receipt emailed to {$customer_email}.";
+    } else {
+        $error = "Transaction completed, but failed to send receipt.";
+    }
+}
+
+
       $_SESSION['cart'] = array();
       $success = "Transaction completed with cash.";
+      if (!empty($customer_email)) {
+        $success .= " Receipt emailed to {$customer_email}.";
+      }
+
     } catch (Exception $e) {
       $conn->rollback();
       $error = "Error during transaction: " . $e->getMessage();
@@ -132,8 +212,89 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         }
       }
       $conn->commit();
+
+      // Email receipt if address provided
+     if (!empty($customer_email)) {
+
+    // set payment method (manually set this in each section)
+    $payment_method = 'Venmo'; // or 'Cash' in the other block
+
+    $subject = "Your Purchase Receipt from Petrongolo Evergreen Plantation";
+
+    // Build HTML header
+    $message = "
+    <html>
+    <body style='font-family: Arial, sans-serif; background-color:#f8f9fa; padding:20px;'>
+      <div style='max-width:600px; margin:auto; background:#fff; border:1px solid #ddd; border-radius:10px; padding:20px;'>
+        <h2 style='color:#2c5530;'>Thank you for your purchase!</h2>
+        <p>Here are your order details:</p>
+        <table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse: collapse; text-align:center;'>
+          <tr style='background-color:#2c5530; color:white;'>
+            <th>Product</th><th>Quantity</th><th>Price</th><th>Subtotal</th>
+          </tr>";
+
+    $total_all = 0;
+
+    // combine duplicates correctly
+    $cart_items = [];
+    foreach ($_SESSION['cart'] as $product_id => $quantity) {
+        $cart_items[$product_id] = ($cart_items[$product_id] ?? 0) + $quantity;
+    }
+
+    foreach ($cart_items as $product_id => $quantity) {
+        $stmt = $conn->prepare("SELECT name, price FROM products WHERE id = ?");
+        $stmt->bind_param("i", $product_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $product = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($product) {
+            $line_total = $product['price'] * $quantity;
+            $total_all += $line_total;
+
+            $message .= "<tr>
+                <td>" . htmlspecialchars($product['name']) . "</td>
+                <td>" . intval($quantity) . "</td>
+                <td>$" . number_format($product['price'], 2) . "</td>
+                <td>$" . number_format($line_total, 2) . "</td>
+            </tr>";
+        }
+    }
+
+    $message .= "
+        </table>
+        <p style='margin-top:15px; font-size:16px;'><strong>Total:</strong> $" . number_format($total_all, 2) . "</p>
+        <p><strong>Payment Method:</strong> {$payment_method}</p>
+        <p><strong>Date:</strong> " . date("Y-m-d H:i:s") . "</p>
+        <p style='color:#2c5530;'>We appreciate your business!</p>
+        <hr>
+        <p style='font-size:0.9em;color:#555;'>Petrongolo Evergreen Plantation<br>
+        noreply@petrongoloevergreenplantation.com</p>
+      </div>
+    </body>
+    </html>";
+
+    // Proper headers for Hostinger (same as your working verification email)
+    $headers  = "From: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Reply-To: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+
+    if (mail($customer_email, $subject, $message, $headers)) {
+        $success .= " Receipt emailed to {$customer_email}.";
+    } else {
+        $error = "Transaction completed, but failed to send receipt.";
+    }
+}
+
+
+
       $_SESSION['cart'] = array();
       $success = "Transaction completed with Venmo.";
+      if (!empty($customer_email)) {
+        $success .= " Receipt emailed to {$customer_email}.";
+      }
+
     } catch (Exception $e) {
       $conn->rollback();
       $error = "Error during transaction: " . $e->getMessage();
@@ -374,19 +535,42 @@ if (!empty($_SESSION['cart'])) {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-            <input type="hidden" name="action" value="checkout_cash">
-            <button type="submit" class="btn btn-primary mb-3"><i class="bi bi-cash me-2"></i>Cash</button>
-          </form>
-          <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#venmoCollapse" aria-expanded="false" aria-controls="venmoCollapse"><i class="bi bi-phone me-2"></i>Venmo</button>
-          <div class="collapse mt-3" id="venmoCollapse">
-            <p>Scan the QR code to pay via Venmo.</p>
-            <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=venmo%3A%2F%2Fpaycharge%3Ftxn%3Dpay%26recipients%3D<?php echo urlencode($venmo_username); ?>%26amount%3D<?php echo $cart_total; ?>%26note%3DPetrongolo%2520Purchase" alt="Venmo QR Code">
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="mt-3">
-              <input type="hidden" name="action" value="confirm_venmo">
-              <button type="submit" class="btn btn-success" onclick="return confirm('Confirm payment received?');"><i class="bi bi-check-circle me-2"></i>Confirm Payment</button>
-            </form>
-          </div>
+            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+    <div class="mb-3">
+      <label for="customerEmail" class="form-label">Customer Email (optional)</label>
+      <input type="email" class="form-control" id="customerEmail" name="customer_email" placeholder="Enter customer's email for receipt">
+    </div>
+
+    <input type="hidden" name="action" value="checkout_cash">
+    <button type="submit" class="btn btn-primary mb-3 w-100">
+      <i class="bi bi-cash me-2"></i>Cash
+    </button>
+  </form>
+
+  <button class="btn btn-primary w-100" data-bs-toggle="collapse" data-bs-target="#venmoCollapse" aria-expanded="false" aria-controls="venmoCollapse">
+    <i class="bi bi-phone me-2"></i>Venmo
+  </button>
+
+  <div class="collapse mt-3" id="venmoCollapse">
+    <p>Scan the QR code to pay via Venmo.</p>
+    <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=venmo%3A%2F%2Fpaycharge%3Ftxn%3Dpay%26recipients%3D<?php echo urlencode($venmo_username); ?>%26amount%3D<?php echo $cart_total; ?>%26note%3DPetrongolo%2520Purchase" alt="Venmo QR Code">
+
+    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="mt-3">
+      <input type="hidden" name="action" value="confirm_venmo">
+      <input type="hidden" name="customer_email" id="hiddenCustomerEmail">
+      <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confirm payment received?');">
+        <i class="bi bi-check-circle me-2"></i>Confirm Payment
+      </button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('input', function() {
+      const emailInput = document.getElementById('customerEmail');
+      const hiddenEmail = document.getElementById('hiddenCustomerEmail');
+      if (emailInput && hiddenEmail) hiddenEmail.value = emailInput.value;
+    });
+  </script>
         </div>
       </div>
     </div>
