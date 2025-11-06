@@ -535,19 +535,44 @@ if (!empty($_SESSION['cart'])) {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-            <input type="hidden" name="action" value="checkout_cash">
-            <button type="submit" class="btn btn-primary mb-3"><i class="bi bi-cash me-2"></i>Cash</button>
-          </form>
-          <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#venmoCollapse" aria-expanded="false" aria-controls="venmoCollapse"><i class="bi bi-phone me-2"></i>Venmo</button>
-          <div class="collapse mt-3" id="venmoCollapse">
-            <p>Scan the QR code to pay via Venmo.</p>
-            <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=venmo%3A%2F%2Fpaycharge%3Ftxn%3Dpay%26recipients%3D<?php echo urlencode($venmo_username); ?>%26amount%3D<?php echo $cart_total; ?>%26note%3DPetrongolo%2520Purchase" alt="Venmo QR Code">
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="mt-3">
-              <input type="hidden" name="action" value="confirm_venmo">
-              <button type="submit" class="btn btn-success" onclick="return confirm('Confirm payment received?');"><i class="bi bi-check-circle me-2"></i>Confirm Payment</button>
-            </form>
-          </div>
+            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+    <div class="mb-3">
+      <label for="customerEmail" class="form-label">Customer Email (optional)</label>
+      <input type="email" class="form-control" id="customerEmail" name="customer_email" placeholder="Enter customer's email for receipt">
+    </div>
+
+    <input type="hidden" name="action" value="checkout_cash">
+    <button type="submit" class="btn btn-primary mb-3 w-100">
+      <i class="bi bi-cash me-2"></i>Cash
+    </button>
+  </form>
+
+  <button class="btn btn-primary w-100" data-bs-toggle="collapse" data-bs-target="#venmoCollapse" aria-expanded="false" aria-controls="venmoCollapse">
+    <i class="bi bi-phone me-2"></i>Venmo
+  </button>
+
+  <div class="collapse mt-3" id="venmoCollapse">
+    <p>Scan the QR code to pay via Venmo.</p>
+    <img src="pictures/QR_code_for_mobile_English_Wikipedia.svg.png"
+       alt="Venmo QR Code"
+       class="img-fluid">
+
+    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="mt-3">
+      <input type="hidden" name="action" value="confirm_venmo">
+      <input type="hidden" name="customer_email" id="hiddenCustomerEmail">
+      <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confirm payment received?');">
+        <i class="bi bi-check-circle me-2"></i>Confirm Payment
+      </button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('input', function() {
+      const emailInput = document.getElementById('customerEmail');
+      const hiddenEmail = document.getElementById('hiddenCustomerEmail');
+      if (emailInput && hiddenEmail) hiddenEmail.value = emailInput.value;
+    });
+  </script>
         </div>
       </div>
     </div>
