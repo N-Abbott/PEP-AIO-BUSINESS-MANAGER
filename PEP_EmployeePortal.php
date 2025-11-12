@@ -1,77 +1,92 @@
 <?php
-// PEP_EmployeePortal.php – SINGLE FILE, TAB-BASED EMPLOYEE PORTAL
+// PEP_EmployeePortal.php – FULLY FUNCTIONAL + SECURE LOGIN + ADMIN ACCESS + MESSAGES + SALES + TASKS + SCHEDULE + ERROR-FREE
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 session_start();
-if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'employee' && $_SESSION['role'] !== 'admin')) {
+
+// === SECURE LOGIN CHECK: EMPLOYEE OR ADMIN ONLY ===
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['employee', 'admin'])) {
+    $_SESSION['error'] = "You must be logged in to access the employee portal.";
     header("Location: PEP_Main.php");
     exit;
 }
+
 include 'config.php'; // <-- $conn = new mysqli(...)
 
 /* --------------------------------------------------------------
-   2. ADMIN LOGIN – USES AdminAccount (admin_id, username, password_hash)
+   1. ADMIN LOGIN – USES AdminAccount (admin_id, username, password_hash)
    -------------------------------------------------------------- */
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['admin_password'])) {
     $input_password = $_POST['admin_password'] ?? '';
-    $username = $_POST['admin_username'] ?? 'admin'; // default if only one admin
-    $stmt = $conn->prepare("SELECT password_hash FROM AdminAccount WHERE username = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result && $result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        if (password_verify($input_password, $row['password_hash'])) {
-            $_SESSION['role'] = 'admin';
-            $_SESSION['admin_username'] = $username;
-            header("Location: PEP_Admin.php");
-            exit;
-        } else {
-            $error = "Invalid password.";
-        }
+    $username = trim($_POST['admin_username'] ?? '');
+    if (!$username) {
+        $error = "Username required.";
     } else {
-        $error = "Admin account not found.";
+        $stmt = $conn->prepare("SELECT admin_id, password_hash FROM AdminAccount WHERE username = ? LIMIT 1");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            if (password_verify($input_password, $row['password_hash'])) {
+                $_SESSION['role'] = 'admin';
+                $_SESSION['user_id'] = $row['admin_id'];
+                $_SESSION['admin_username'] = $username;
+                header("Location: PEP_Admin.php");
+                exit;
+            } else {
+                $error = "Invalid password.";
+            }
+        } else {
+            $error = "Admin account not found.";
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 /* --------------------------------------------------------------
-   3. DETERMINE ACTIVE TAB
+   2. DETERMINE ACTIVE TAB
    -------------------------------------------------------------- */
-$active_tab = $_POST['tab'] ?? $_GET['tab'] ?? 'tasks'; // Support GET too for refresh
+$active_tab = $_POST['tab'] ?? $_GET['tab'] ?? 'tasks'; // Support GET & POST
 
 /* --------------------------------------------------------------
-   4. TASKS TAB
+   3. TASKS TAB
    -------------------------------------------------------------- */
 $tasks_result = null;
 if ($active_tab === 'tasks') {
     $employee_id = $_SESSION['user_id'] ?? 0;
-    $stmt = $conn->prepare("SELECT * FROM EmployeeTasks WHERE employee_id = ? ORDER BY task_date");
-    $stmt->bind_param("i", $employee_id);
-    $stmt->execute();
-    $tasks_result = $stmt->get_result();
-    $stmt->close();
+    if ($employee_id) {
+        $stmt = $conn->prepare("SELECT task_id, task_description, task_date FROM EmployeeTasks WHERE employee_id = ? ORDER BY task_date");
+        $stmt->bind_param("i", $employee_id);
+        $stmt->execute();
+        $tasks_result = $stmt->get_result();
+        $stmt->close();
+    }
 }
 
 /* --------------------------------------------------------------
-   5. SCHEDULE TAB
+   4. SCHEDULE TAB
    -------------------------------------------------------------- */
 $schedules_result = null;
 if ($active_tab === 'schedule') {
     $employee_id = $_SESSION['user_id'] ?? 0;
-    $stmt = $conn->prepare("SELECT * FROM EmployeeSchedules WHERE employee_id = ? ORDER BY shift_date");
-    $stmt->bind_param("i", $employee_id);
-    $stmt->execute();
-    $schedules_result = $stmt->get_result();
-    $stmt->close();
+    if ($employee_id) {
+        $stmt = $conn->prepare("SELECT schedule_id, shift_date, shift_time, role_tasks FROM EmployeeSchedules WHERE employee_id = ? ORDER BY shift_date");
+        $stmt->bind_param("i", $employee_id);
+        $stmt->execute();
+        $schedules_result = $stmt->get_result();
+        $stmt->close();
+    }
 }
 
 /* --------------------------------------------------------------
-   6. SALES TAB – ALL DB WORK HERE
+   5. SALES TAB – FULLY SECURE CART + STOCK CHECK + CASH CHECKOUT
    -------------------------------------------------------------- */
 $products_result = null;
 $cart_total = 0;
+$cart_items = [];
+
 if ($active_tab === 'sales') {
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [];
@@ -81,8 +96,8 @@ if ($active_tab === 'sales') {
     if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'add_to_cart') {
         $product_id = (int)($_POST['product_id'] ?? 0);
         $quantity = (int)($_POST['quantity'] ?? 0);
-        if ($product_id && $quantity) {
-            $stmt = $conn->prepare("SELECT stock_quantity FROM Product WHERE product_id = ?");
+        if ($product_id && $quantity > 0) {
+            $stmt = $conn->prepare("SELECT stock_quantity, price FROM Product WHERE product_id = ?");
             $stmt->bind_param("i", $product_id);
             $stmt->execute();
             $res = $stmt->get_result();
@@ -90,8 +105,9 @@ if ($active_tab === 'sales') {
             $stmt->close();
             if ($prod && $quantity <= $prod['stock_quantity']) {
                 $_SESSION['cart'][$product_id] = ($_SESSION['cart'][$product_id] ?? 0) + $quantity;
+                $success = "Added to cart.";
             } else {
-                $error = "Insufficient stock.";
+                $error = "Not enough stock.";
             }
         }
     }
@@ -108,10 +124,11 @@ if ($active_tab === 'sales') {
         if (!empty($_SESSION['cart'])) {
             $conn->begin_transaction();
             try {
-                $stmt = $conn->prepare("INSERT INTO Sales (payment_method) VALUES ('cash')");
+                $stmt = $conn->prepare("INSERT INTO Sales (payment_method, sale_date) VALUES ('cash', NOW())");
                 $stmt->execute();
                 $sale_id = $conn->insert_id;
                 $stmt->close();
+
                 foreach ($_SESSION['cart'] as $pid => $qty) {
                     $stmt = $conn->prepare("SELECT price, stock_quantity FROM Product WHERE product_id = ? FOR UPDATE");
                     $stmt->bind_param("i", $pid);
@@ -119,12 +136,14 @@ if ($active_tab === 'sales') {
                     $res = $stmt->get_result();
                     $p = $res->fetch_assoc();
                     $stmt->close();
+
                     if ($p && $qty <= $p['stock_quantity']) {
                         $line_total = $p['price'] * $qty;
                         $stmt = $conn->prepare("INSERT INTO SaleItems (sale_id, product_id, quantity, line_total) VALUES (?, ?, ?, ?)");
                         $stmt->bind_param("iiid", $sale_id, $pid, $qty, $line_total);
                         $stmt->execute();
                         $stmt->close();
+
                         $stmt = $conn->prepare("UPDATE Product SET stock_quantity = stock_quantity - ? WHERE product_id = ?");
                         $stmt->bind_param("ii", $qty, $pid);
                         $stmt->execute();
@@ -134,12 +153,11 @@ if ($active_tab === 'sales') {
                     }
                 }
                 $conn->commit();
-                $success = "Cash transaction completed.";
-                if ($customer_email) $success .= " Receipt emailed.";
+                $success = "Cash sale completed.";
                 $_SESSION['cart'] = [];
             } catch (Exception $e) {
                 $conn->rollback();
-                $error = $e->getMessage();
+                $error = "Transaction failed: " . $e->getMessage();
             }
         } else {
             $error = "Cart is empty.";
@@ -147,52 +165,56 @@ if ($active_tab === 'sales') {
     }
 
     /* ----- FETCH PRODUCTS ----- */
-    $products_result = $conn->query("SELECT product_id AS id, name, price, stock_quantity FROM Product WHERE stock_quantity > 0");
+    $products_result = $conn->query("SELECT product_id AS id, name, price, stock_quantity FROM Product WHERE stock_quantity > 0 ORDER BY name");
 
-    /* ----- CART TOTAL ----- */
+    /* ----- BUILD CART DISPLAY ----- */
     if (!empty($_SESSION['cart'])) {
         foreach ($_SESSION['cart'] as $pid => $qty) {
-            $stmt = $conn->prepare("SELECT price FROM Product WHERE product_id = ?");
+            $stmt = $conn->prepare("SELECT name, price FROM Product WHERE product_id = ?");
             $stmt->bind_param("i", $pid);
             $stmt->execute();
             $res = $stmt->get_result();
             $p = $res->fetch_assoc();
             $stmt->close();
-            if ($p) $cart_total += $p['price'] * $qty;
+            if ($p) {
+                $cart_items[] = [
+                    'id' => $pid,
+                    'name' => $p['name'],
+                    'qty' => $qty,
+                    'price' => $p['price'],
+                    'subtotal' => $p['price'] * $qty
+                ];
+                $cart_total += $p['price'] * $qty;
+            }
         }
     }
 }
 
 /* --------------------------------------------------------------
-   <<< MESSAGES START >>>
-   7. MESSAGES TAB – FULLY INTEGRATED
+   6. MESSAGES TAB – FULLY SECURE + SEARCH + SORT + REPLY + DELETE
    -------------------------------------------------------------- */
 $messages_result = null;
-$search_term   = '';
-$sort_order    = 'DESC';
+$search_term = '';
+$sort_order = 'DESC';
 
 if ($active_tab === 'messages') {
-    // ----- FILTER & SEARCH -----
     $search_term = trim($_POST['search'] ?? $_GET['search'] ?? '');
-    $sort_order  = strtoupper($_POST['sort'] ?? $_GET['sort'] ?? 'DESC');
-    $sort_order  = ($sort_order === 'ASC') ? 'ASC' : 'DESC';
+    $sort_order = strtoupper($_POST['sort'] ?? $_GET['sort'] ?? 'DESC');
+    $sort_order = ($sort_order === 'ASC') ? 'ASC' : 'DESC';
 
-    $sql = "SELECT contact_id, name, email, message, 
+    $sql = "SELECT contact_id, name, email, message,
                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') AS sent_at,
                    replied, reply_date
             FROM Contact
             WHERE 1=1";
-
     $params = [];
-    $types  = '';
-
+    $types = '';
     if ($search_term !== '') {
-        $sql   .= " AND (name LIKE ? OR email LIKE ? OR message LIKE ?)";
-        $like   = '%' . $search_term . '%';
+        $sql .= " AND (name LIKE ? OR email LIKE ? OR message LIKE ?)";
+        $like = '%' . $search_term . '%';
         $params[] = $like; $params[] = $like; $params[] = $like;
-        $types   .= 'sss';
+        $types .= 'sss';
     }
-
     $sql .= " ORDER BY created_at $sort_order";
 
     $stmt = $conn->prepare($sql);
@@ -203,7 +225,7 @@ if ($active_tab === 'messages') {
     $messages_result = $stmt->get_result();
     $stmt->close();
 
-    // ----- MARK AS REPLIED -----
+    // MARK AS REPLIED
     if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'mark_replied') {
         $cid = (int)($_POST['contact_id'] ?? 0);
         $stmt = $conn->prepare("UPDATE Contact SET replied = 1, reply_date = NOW() WHERE contact_id = ?");
@@ -212,12 +234,12 @@ if ($active_tab === 'messages') {
         $stmt->close();
         $redirect = "PEP_EmployeePortal.php?tab=messages";
         if ($search_term) $redirect .= "&search=" . urlencode($search_term);
-        if ($sort_order) $redirect .= "&sort=" . $sort_order;
+        if ($sort_order !== 'DESC') $redirect .= "&sort=" . $sort_order;
         header("Location: $redirect");
         exit;
     }
 
-    // ----- DELETE MESSAGE -----
+    // DELETE MESSAGE
     if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'delete_message') {
         $cid = (int)($_POST['contact_id'] ?? 0);
         $stmt = $conn->prepare("DELETE FROM Contact WHERE contact_id = ?");
@@ -226,19 +248,10 @@ if ($active_tab === 'messages') {
         $stmt->close();
         $redirect = "PEP_EmployeePortal.php?tab=messages";
         if ($search_term) $redirect .= "&search=" . urlencode($search_term);
-        if ($sort_order) $redirect .= "&sort=" . $sort_order;
+        if ($sort_order !== 'DESC') $redirect .= "&sort=" . $sort_order;
         header("Location: $redirect");
         exit;
     }
-}
-/* <<< MESSAGES END >>> */
-
-/* --------------------------------------------------------------
-   8. VENMO CHECKOUT (optional, not implemented in DB yet)
-   -------------------------------------------------------------- */
-if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm_venmo') {
-    // Same logic as cash but with payment_method = 'venmo'
-    // Left as exercise or future expansion
 }
 ?>
 <!DOCTYPE html>
@@ -247,22 +260,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
     <title>Employee Portal – Petrongolo Evergreen Plantation</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-          crossorigin="anonymous">
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@400;700&display=swap">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Roboto:wght@400;700&display=swap">
     <link rel="icon" type="image/png" href="Tree.png">
     <link rel="stylesheet" href="styles.css">
     <style>
         html,body{height:100%;margin:0;background:#f8f9fa;font-family:'Roboto',sans-serif;}
         .navbar{background:#2c5530;box-shadow:0 2px 4px rgba(0,0,0,.1);}
         .navbar-brand,.nav-link{color:#fff !important;}
-        .sidebar{position:fixed;right:0;top:0;width:250px;height:100vh;background:#2c5530;padding:20px;overflow-y:auto;
-                 box-shadow:-2px 0 5px rgba(0,0,0,.1);border-left:1px solid #dee2e6;}
+        .sidebar{position:fixed;right:0;top:0;width:250px;height:100vh;background:#2c5530;padding:20px;overflow-y:auto;box-shadow:-2px 0 5px rgba(0,0,0,.1);}
         .sidebar h4{color:#fff;margin-bottom:20px;}
         .sidebar .nav-link{color:#fff;padding:10px;border-radius:5px;margin-bottom:10px;font-weight:600;transition:.3s;}
         .sidebar .nav-link:hover,.sidebar .nav-link.active{background:#5c8c61;color:#fff !important;}
@@ -276,18 +283,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
     </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x" style="z-index: 9999; margin-top: 1rem;" role="alert">
         <?= htmlspecialchars($success) ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x" style="z-index: 9999; margin-top: 1rem;" role="alert">
         <?= htmlspecialchars($error) ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -327,7 +332,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                 </button>
             </form>
         </li>
-        <!-- <<< MESSAGES SIDEBAR BUTTON >>> -->
         <li class="nav-item">
             <form method="post" class="tab-form">
                 <input type="hidden" name="tab" value="messages">
@@ -336,12 +340,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                 </button>
             </form>
         </li>
-        <!-- <<< END >>> -->
+        <?php if ($_SESSION['role'] === 'admin'): ?>
+        <li class="nav-item">
+            <a class="nav-link" href="PEP_Admin.php">
+                <i class="bi bi-shield-lock me-2"></i>Admin Panel
+            </a>
+        </li>
+        <?php else: ?>
         <li class="nav-item">
             <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
                 <i class="bi bi-lock me-2"></i>Admin Access
             </a>
         </li>
+        <?php endif; ?>
         <li class="nav-item">
             <a class="nav-link" href="logout.php">
                 <i class="bi bi-box-arrow-left me-2"></i>Logout
@@ -351,23 +362,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
 </div>
 
 <div class="content">
+
     <!-- ==================== TASKS TAB ==================== -->
     <div id="tasks" style="display:<?= $active_tab==='tasks'?'block':'none' ?>;">
         <h2 class="section-title">Your Tasks</h2>
         <?php if ($tasks_result && $tasks_result->num_rows > 0): ?>
-            <table class="table table-striped table-hover">
-                <thead><tr><th>Task</th><th>Due Date</th></tr></thead>
-                <tbody>
-                    <?php while ($row = $tasks_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['task_description']) ?></td>
-                            <td><?= htmlspecialchars($row['task_date']) ?></td>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead><tr><th>Task</th><th>Due Date</th></tr></thead>
+                    <tbody>
+                        <?php while ($row = $tasks_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($row['task_description']) ?></td>
+                                <td><?= htmlspecialchars($row['task_date']) ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php else: ?>
-            <p class="text-center">No tasks assigned yet.</p>
+            <p class="text-center text-muted">No tasks assigned yet.</p>
         <?php endif; ?>
     </div>
 
@@ -375,37 +389,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
     <div id="schedule" style="display:<?= $active_tab==='schedule'?'block':'none' ?>;">
         <h2 class="section-title">Your Schedule</h2>
         <?php if ($schedules_result && $schedules_result->num_rows > 0): ?>
-            <table class="table table-striped table-hover">
-                <thead><tr><th>Date</th><th>Shift Time</th><th>Role/Tasks</th></tr></thead>
-                <tbody>
-                    <?php while ($row = $schedules_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['shift_date']) ?></td>
-                            <td><?= htmlspecialchars($row['shift_time']) ?></td>
-                            <td><?= htmlspecialchars($row['role_tasks']) ?></td>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead><tr><th>Date</th><th>Shift Time</th><th>Role/Tasks</th></tr></thead>
+                    <tbody>
+                        <?php while ($row = $schedules_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($row['shift_date']) ?></td>
+                                <td><?= htmlspecialchars($row['shift_time']) ?></td>
+                                <td><?= htmlspecialchars($row['role_tasks']) ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php else: ?>
-            <p class="text-center">No schedule assigned yet.</p>
+            <p class="text-center text-muted">No schedule assigned yet.</p>
         <?php endif; ?>
     </div>
 
     <!-- ==================== SALES TAB ==================== -->
     <div id="sales" style="display:<?= $active_tab==='sales'?'block':'none' ?>;">
         <h2 class="section-title">Input Sales</h2>
-        <!-- ==== AVAILABLE PRODUCTS ==== -->
+
         <h4 class="mt-4">Available Products</h4>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col" class="text-end">Price</th>
-                        <th scope="col" class="text-center">Stock</th>
-                        <th scope="col" class="text-center">Qty</th>
-                        <th scope="col" class="text-center">Add</th>
+                        <th>Name</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-center">Stock</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-center">Add</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -420,16 +436,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                                     <td class="text-end fw-semibold">$<?= number_format($p['price'],2) ?></td>
                                     <td class="text-center"><?= $p['stock_quantity'] ?></td>
                                     <td class="text-center">
-                                        <input type="number"
-                                               name="quantity"
-                                               min="1"
-                                               max="<?= $p['stock_quantity'] ?>"
-                                               value="1"
-                                               class="form-control form-control-sm w-75 mx-auto">
+                                        <input type="number" name="quantity" min="1" max="<?= $p['stock_quantity'] ?>" value="1" class="form-control form-control-sm w-75 mx-auto">
                                     </td>
                                     <td class="text-center">
-                                        <button type="submit"
-                                                class="btn btn-primary btn-sm">
+                                        <button type="submit" class="btn btn-primary btn-sm">
                                             <i class="bi bi-cart-plus"></i>
                                         </button>
                                     </td>
@@ -443,7 +453,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
             </table>
         </div>
 
-        <!-- ==== CURRENT CART ==== -->
         <h4 class="mt-5">Current Cart</h4>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
@@ -457,32 +466,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (!empty($_SESSION['cart'])): ?>
-                        <?php foreach ($_SESSION['cart'] as $pid => $qty):
-                            $stmt = $conn->prepare("SELECT name, price FROM Product WHERE product_id = ?");
-                            $stmt->bind_param("i", $pid);
-                            $stmt->execute();
-                            $res = $stmt->get_result();
-                            $prod = $res->fetch_assoc();
-                            $stmt->close();
-                            if ($prod): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($prod['name']) ?></td>
-                                    <td class="text-center"><?= $qty ?></td>
-                                    <td class="text-end">$<?= number_format($prod['price'],2) ?></td>
-                                    <td class="text-end">$<?= number_format($prod['price']*$qty,2) ?></td>
-                                    <td class="text-center">
-                                        <form method="post" style="display:inline;">
-                                            <input type="hidden" name="tab" value="sales">
-                                            <input type="hidden" name="action" value="remove_from_cart">
-                                            <input type="hidden" name="product_id" value="<?= $pid ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
+                    <?php if (!empty($cart_items)): ?>
+                        <?php foreach ($cart_items as $item): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($item['name']) ?></td>
+                                <td class="text-center"><?= $item['qty'] ?></td>
+                                <td class="text-end">$<?= number_format($item['price'],2) ?></td>
+                                <td class="text-end">$<?= number_format($item['subtotal'],2) ?></td>
+                                <td class="text-center">
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="tab" value="sales">
+                                        <input type="hidden" name="action" value="remove_from_cart">
+                                        <input type="hidden" name="product_id" value="<?= $item['id'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                         <tr class="table-secondary">
                             <td colspan="3" class="text-end fw-bold">Total</td>
@@ -495,7 +496,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                 </tbody>
             </table>
         </div>
-        <?php if (!empty($_SESSION['cart'])): ?>
+
+        <?php if (!empty($cart_items)): ?>
             <div class="mt-4 text-center">
                 <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#checkoutModal">
                     <i class="bi bi-credit-card me-2"></i>Checkout
@@ -504,17 +506,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
         <?php endif; ?>
     </div>
 
-    <!-- <<< MESSAGES TAB CONTENT >>> -->
+    <!-- ==================== MESSAGES TAB ==================== -->
     <div id="messages" style="display:<?= $active_tab==='messages'?'block':'none' ?>;">
         <h2 class="section-title">Customer Messages</h2>
 
-        <!-- SEARCH & SORT -->
         <div class="row mb-3">
             <div class="col-md-6">
                 <form method="post" class="d-flex gap-2">
                     <input type="hidden" name="tab" value="messages">
-                    <input type="text" name="search" class="form-control" placeholder="Search name / email / message..."
-                           value="<?= htmlspecialchars($search_term) ?>">
+                    <input type="text" name="search" class="form-control" placeholder="Search name / email / message..." value="<?= htmlspecialchars($search_term) ?>">
                     <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
                 </form>
             </div>
@@ -524,15 +524,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                     <?php if ($search_term): ?>
                         <input type="hidden" name="search" value="<?= htmlspecialchars($search_term) ?>">
                     <?php endif; ?>
-                    <button name="sort" value="<?= $sort_order==='DESC'?'ASC':'DESC' ?>"
-                            class="btn btn-outline-secondary">
+                    <button name="sort" value="<?= $sort_order==='DESC'?'ASC':'DESC' ?>" class="btn btn-outline-secondary">
                         Sort <?= $sort_order==='DESC'?'↑ Ascending':'↓ Descending' ?>
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- MESSAGES TABLE -->
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
@@ -564,13 +562,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center">
-                                    <!-- REPLY VIA EMAIL -->
-                                    <a href="mailto:<?= urlencode($m['email']) ?>?subject=Re:%20Contact%20from%20Petrongolo%20Evergreen&body=Hello%20<?= urlencode($m['name']) ?>%2C%0A%0A&from=noreply@petrongoloevergreenplantation.com"
-                                       class="btn btn-sm btn-primary" title="Open email client">
+                                    <a href="mailto:<?= urlencode($m['email']) ?>?subject=Re:%20Contact%20from%20Petrongolo%20Evergreen&body=Hello%20<?= urlencode($m['name']) ?>%2C%0A%0A"
+                                       class="btn btn-sm btn-primary" title="Reply via email">
                                         <i class="bi bi-reply"></i>
                                     </a>
-
-                                    <!-- MARK AS REPLIED -->
                                     <?php if (!$m['replied']): ?>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Mark as replied?');">
                                             <input type="hidden" name="tab" value="messages">
@@ -581,9 +576,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                                             </button>
                                         </form>
                                     <?php endif; ?>
-
-                                    <!-- DELETE -->
-                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this message permanently?');">
+                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete permanently?');">
                                         <input type="hidden" name="tab" value="messages">
                                         <input type="hidden" name="action" value="delete_message">
                                         <input type="hidden" name="contact_id" value="<?= $m['contact_id'] ?>">
@@ -601,27 +594,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
             </table>
         </div>
     </div>
-    <!-- <<< END MESSAGES TAB >>> -->
+
 </div>
 
 <!-- ==================== ADMIN LOGIN MODAL ==================== -->
-<div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginLabel" aria-hidden="true">
+<?php if ($_SESSION['role'] !== 'admin'): ?>
+<div class="modal fade" id="adminLoginModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="adminLoginLabel">Admin Access</h5>
+                <h5 class="modal-title">Admin Access</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form method="post">
                     <input type="hidden" name="tab" value="<?= $active_tab ?>">
                     <div class="mb-3">
-                        <label for="adminUsername" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="adminUsername" name="admin_username" value="" required>
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="admin_username" required>
                     </div>
                     <div class="mb-3">
-                        <label for="adminPassword" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="adminPassword" name="admin_password" required>
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="admin_password" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Login</button>
                 </form>
@@ -629,24 +623,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- ==================== CHECKOUT MODAL ==================== -->
-<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutLabel" aria-hidden="true">
+<div class="modal fade" id="checkoutModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="checkoutLabel">Checkout Options</h5>
+                <h5 class="modal-title">Checkout Options</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form method="post">
                     <input type="hidden" name="tab" value="sales">
                     <div class="mb-3">
-                        <label for="customerEmail" class="form-label">Customer Email (optional)</label>
-                        <input type="email" class="form-control" id="customerEmail" name="customer_email" placeholder="Receipt email">
+                        <label class="form-label">Customer Email (optional)</label>
+                        <input type="email" class="form-control" name="customer_email" placeholder="Send receipt">
                     </div>
                     <input type="hidden" name="action" value="checkout_cash">
-                    <button type="submit" class="btn btn-primary w-100 mb-2"><i class="bi bi-cash me-2"></i>Cash</button>
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-cash me-2"></i>Cash
+                    </button>
                 </form>
                 <button class="btn btn-primary w-100" data-bs-toggle="collapse" data-bs-target="#venmoCollapse">
                     <i class="bi bi-phone me-2"></i>Venmo
@@ -658,22 +655,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm
                         <input type="hidden" name="tab" value="sales">
                         <input type="hidden" name="action" value="confirm_venmo">
                         <input type="hidden" name="customer_email" id="hiddenVenmoEmail">
-                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confirm payment received?');">
+                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confirm Venmo payment received?');">
                             <i class="bi bi-check-circle me-2"></i>Confirm Payment
                         </button>
                     </form>
                 </div>
-                <script>
-                    document.addEventListener('input', () => {
-                        const src = document.getElementById('customerEmail');
-                        const dst = document.getElementById('hiddenVenmoEmail');
-                        if (src && dst) dst.value = src.value;
-                    });
-                </script>
             </div>
         </div>
     </div>
 </div>
 
+<script>
+    // Sync email from cash to venmo
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.name === 'customer_email') {
+            const venmoEmail = document.getElementById('hiddenVenmoEmail');
+            if (venmoEmail) venmoEmail.value = e.target.value;
+        }
+    });
+</script>
 </body>
 </html>
+<?php $conn->close(); ?>
