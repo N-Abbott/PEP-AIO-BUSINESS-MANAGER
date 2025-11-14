@@ -122,6 +122,10 @@ if ($active_tab === 'sales') {
     if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'checkout_cash') {
         $customer_email = trim($_POST['customer_email'] ?? '');
         if (!empty($_SESSION['cart'])) {
+
+            // Backup before clearing
+             $_SESSION['cart_backup'] = $_SESSION['cart'];
+
             $conn->begin_transaction();
             try {
                 $stmt = $conn->prepare("INSERT INTO Sales (payment_method, sale_date) VALUES ('cash', NOW())");
@@ -155,6 +159,82 @@ if ($active_tab === 'sales') {
                 $conn->commit();
                 $success = "Cash sale completed.";
                 $_SESSION['cart'] = [];
+                // ========================= SEND CASH RECEIPT ============================
+if (!empty($customer_email)) {
+
+    $payment_method = 'Cash';
+    $subject = "Your Purchase Receipt from Petrongolo Evergreen Plantation";
+
+    $message = "
+    <html>
+    <body style='font-family: Arial, sans-serif; background-color:#f8f9fa; padding:20px;'>
+      <div style='max-width:600px; margin:auto; background:#fff; border:1px solid #ddd; border-radius:10px; padding:20px;'>
+        <h2 style='color:#2c5530;'>Thank you for your purchase!</h2>
+        <p>Here are your order details:</p>
+
+        <table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse: collapse; text-align:center;'>
+          <tr style='background-color:#2c5530; color:white;'>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Tax</th>
+            <th>Subtotal</th>
+          </tr>";
+
+    $total_all = 0;
+
+    // Restore original cart (saved before clearing)
+    $cart_items_email = [];
+    foreach ($_SESSION['cart_backup'] ?? [] as $pid => $qty) {
+        $cart_items_email[$pid] = ($cart_items_email[$pid] ?? 0) + $qty;
+    }
+
+    foreach ($cart_items_email as $pid => $qty) {
+        $stmt = $conn->prepare("SELECT name, price FROM Product WHERE product_id = ?");
+        $stmt->bind_param("i", $pid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $p = $res->fetch_assoc();
+        $stmt->close();
+
+        if ($p) {
+            $line_total = $p['price'] * $qty;
+            $total_all += $line_total;
+
+            $message .= "<tr>
+                <td>" . htmlspecialchars($p['name']) . "</td>
+                <td>" . intval($qty) . "</td>
+                <td>$" . number_format($p['price'], 2) . "</td>
+                <td>$0.00</td>
+                <td>$" . number_format($line_total, 2) . "</td>
+            </tr>";
+        }
+    }
+
+    $message .= "
+        </table>
+
+        <p style='margin-top:15px; font-size:16px;'><strong>Total:</strong> $" . number_format($total_all, 2) . "</p>
+        <p><strong>Payment Method:</strong> Cash</p>
+        <p><strong>Date:</strong> " . date("Y-m-d H:i:s") . "</p>
+
+        <p style='color:#2c5530;'>We appreciate your business!</p>
+        <hr>
+
+        <p style='font-size:0.9em;color:#555;'>Petrongolo Evergreen Plantation<br>
+        noreply@petrongoloevergreenplantation.com</p>
+
+      </div>
+    </body>
+    </html>";
+
+    $headers  = "From: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Reply-To: noreply@petrongoloevergreenplantation.com\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+
+    mail($customer_email, $subject, $message, $headers);
+}
+
             } catch (Exception $e) {
                 $conn->rollback();
                 $error = "Transaction failed: " . $e->getMessage();
@@ -163,6 +243,136 @@ if ($active_tab === 'sales') {
             $error = "Cart is empty.";
         }
     }
+
+/* ----- CHECKOUT VENMO CONFIRM ----- */
+if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST['action'] ?? '') == 'confirm_venmo') {
+
+    $customer_email = trim($_POST['customer_email'] ?? '');
+
+    if (!empty($_SESSION['cart'])) {
+
+        // Backup cart for receipt
+        $_SESSION['cart_backup'] = $_SESSION['cart'];
+
+        $conn->begin_transaction();
+
+        try {
+            // Create sale
+            $stmt = $conn->prepare("INSERT INTO Sales (payment_method, sale_date) VALUES ('venmo', NOW())");
+            $stmt->execute();
+            $sale_id = $conn->insert_id;
+            $stmt->close();
+
+            // Process items
+            foreach ($_SESSION['cart'] as $pid => $qty) {
+                $stmt = $conn->prepare("SELECT price, stock_quantity FROM Product WHERE product_id = ? FOR UPDATE");
+                $stmt->bind_param("i", $pid);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $p = $res->fetch_assoc();
+                $stmt->close();
+
+                if ($p && $qty <= $p['stock_quantity']) {
+
+                    $line_total = $p['price'] * $qty;
+
+                    // Insert SaleItems row
+                    $stmt = $conn->prepare("INSERT INTO SaleItems (sale_id, product_id, quantity, line_total) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param("iiid", $sale_id, $pid, $qty, $line_total);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    // Deduct stock
+                    $stmt = $conn->prepare("UPDATE Product SET stock_quantity = stock_quantity - ? WHERE product_id = ?");
+                    $stmt->bind_param("ii", $qty, $pid);
+                    $stmt->execute();
+                    $stmt->close();
+
+                } else {
+                    throw new Exception("Insufficient stock for product $pid");
+                }
+            }
+
+            $conn->commit();
+
+            /* ---------------------------------------------
+               SEND VENMO RECEIPT EMAIL (MATCH FORMAT)
+            ---------------------------------------------- */
+            if (!empty($customer_email)) {
+
+                $subject = "Your Purchase Receipt from Petrongolo Evergreen Plantation";
+
+                $message = "
+                <html>
+                <body style='font-family: Arial, sans-serif; background:#f8f9fa; padding:20px;'>
+                  <div style='max-width:600px; margin:auto; background:#fff; border:1px solid #ddd; border-radius:10px; padding:20px;'>
+
+                    <h2 style='color:#2c5530;'>Thank you for your purchase!</h2>
+
+                    <table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse:collapse;'>
+                      <tr style='background:#2c5530; color:white;'>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Tax</th>
+                        <th>Subtotal</th>
+                      </tr>";
+
+                $total_all = 0;
+
+                foreach ($_SESSION['cart_backup'] as $pid => $qty) {
+                    $stmt = $conn->prepare("SELECT name, price FROM Product WHERE product_id = ?");
+                    $stmt->bind_param("i", $pid);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+                    $p = $res->fetch_assoc();
+                    $stmt->close();
+
+                    if ($p) {
+                        $line_total = $p['price'] * $qty;
+                        $total_all += $line_total;
+
+                        $message .= "
+                        <tr>
+                          <td>".htmlspecialchars($p['name'])."</td>
+                          <td>$qty</td>
+                          <td>$".number_format($p['price'],2)."</td>
+                          <td>$0.00</td>
+                          <td>$".number_format($line_total,2)."</td>
+                        </tr>";
+                    }
+                }
+
+                $message .= "
+                    </table>
+                    <p><strong>Total:</strong> $".number_format($total_all,2)."</p>
+                    <p><strong>Payment Method:</strong> Venmo</p>
+                    <p><strong>Date:</strong> ".date("Y-m-d H:i:s")."</p>
+
+                    <p style='color:#2c5530;'>We appreciate your business!</p>
+
+                  </div>
+                </body>
+                </html>";
+
+                $headers  = "From: noreply@petrongoloevergreenplantation.com\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+
+                mail($customer_email, $subject, $message, $headers);
+            }
+
+            $_SESSION['cart'] = [];
+            $success = "Transaction completed with Venmo.";
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            $error = "Error: " . $e->getMessage();
+        }
+
+    } else {
+        $error = "Cart is empty.";
+    }
+}
 
     /* ----- FETCH PRODUCTS ----- */
     $products_result = $conn->query("SELECT product_id AS id, name, price, stock_quantity FROM Product WHERE stock_quantity > 0 ORDER BY name");
