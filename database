@@ -1,0 +1,202 @@
+CREATE TABLE `AdminAccount` (
+  `admin_id` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `password_hash` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `AdminAccount`
+--
+
+INSERT INTO `AdminAccount` (`admin_id`, `username`, `password_hash`) VALUES
+(7, 'jake1', '$2y$10$7exr87BnoF3S6Gj5foG53OaNUI3HKu3q0AehTLllqIk9E4vlW5uzG'),
+(8, 'noah1', '$2y$10$FVneOaHNJkrorION54sY9OJGHr73k1z05SDq3pngfg6C0SNROdB3y'),
+(9, 'tony1', '$2y$10$O60B8hC8YZwbKoUenoZze.iQwmF0U6FYC9SIhHt9PvUM7uRD77Sjq');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Contact`
+--
+
+CREATE TABLE `Contact` (
+  `contact_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `replied` tinyint(1) DEFAULT 0,
+  `reply_date` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `Contact`
+--
+
+INSERT INTO `Contact` (`contact_id`, `name`, `email`, `message`, `created_at`, `replied`, `reply_date`) VALUES
+(2, 'Jake Smart', 'jakensmart13@yahoo.com', 'i <3 trees', '2025-11-11 21:52:50', 1, '2025-11-11 21:57:47'),
+(3, 'Jake', 'jakensmart13@yahoo.com', 'TREEEEEEESSSSSS', '2025-11-11 21:52:50', 1, '2025-11-11 21:59:34'),
+(4, 'Nikita', 'nikita@rocketdigitaltech.com', 'Hello http://petrongoloevergreenplantation.com,\r\n\r\nI checked your website. You have an impressive site but ranking is not good on Google, Yahoo and Bing.\r\n\r\nWould you like to optimize your site?\r\n\r\nIf you are interested, please share your WhatsApp number so I can send you our past work and pricing details and strategies.\r\n\r\nCan I send?\r\n\r\nWarm regards,\r\nNikita', '2025-11-11 21:52:50', 1, '2025-11-11 21:59:16'),
+(13, 'Sam Pyle', 'mc.keeknight85065+sam.pyle@gmail.com', 'Interested in building quality backlinks for petrongoloevergreenplantation.com? Get your Free Backlink Strategy.', '2025-11-22 09:32:44', 0, NULL),
+(14, 'Princess Lombard', 'p.arkerharrison31023+princess.lombard@gmail.com', 'Ready to see real people visit petrongoloevergreenplantation.com? Get your Free Demo.', '2025-11-23 05:39:23', 0, NULL),
+(15, 'Mike Karl Moreau', 'info@digital-x-press.com', 'Hi, \r\nI recognize that most website owners struggle grasping that organic ranking growth is a long-term game and a carefully organized regular commitment. \r\n \r\nThe reality is, very few website owners have the patience to wait for the progressive yet significant benefits that can completely transform their search performance. \r\n \r\nWith regular search engine updates, a stable, long-term strategy including Answer Engine Optimization (AEO) is essential for getting a positive ROI. \r\n \r\nIf you agree this as the ideal method, work with us! \r\n \r\nExplore Our Monthly SEO Services https://www.digital-x-press.com/unbeatable-seo/ \r\n \r\nChat With Us on Instant Messaging https://www.digital-x-press.com/whatsapp-us/ \r\n \r\nWe offer remarkable results for your investment, and you will enjoy choosing us as your growth partner. \r\n \r\nKind regards, \r\nDigital X SEO Experts \r\nPhone/WhatsApp: +1 (844) 754-1148', '2025-11-23 15:31:52', 0, NULL),
+(16, 'Wendi Wilcox', 'parkerharrison31023+wendi.wilcox@gmail.com', 'Interested in sending more organic visitors to petrongoloevergreenplantation.com? Start here: https://rb.gy/p82gvr', '2025-11-27 10:54:58', 0, NULL),
+(17, 'Leroy Escobar', 'parker.harrison31023+leroy.escobar@gmail.com', 'Ready to increase petrongoloevergreenplantation.com traffic effectively? Go ahead: https://rb.gy/p82gvr', '2025-11-27 20:40:00', 0, NULL),
+(18, 'Ankit S', 'letsgetuoptimize@gmail.com', 'Hey team petrongoloevergreenplantation.com,\r\n\r\nI would like to discuss SEO!\r\n\r\nI can help your website to get on first page of Google and increase the number of leads and sales you are getting from your website.\r\n\r\nMay I send you a quote & price list?\r\n\r\nBests Regards,\r\nAnkit\r\nBest AI SEO Company\r\nAccounts Manager\r\nwww.letsgetoptimize.com\r\nPhone No: +1 (949) 508-0277', '2025-11-28 14:19:27', 0, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Customer`
+--
+
+CREATE TABLE `Customer` (
+  `customer_id` int(11) NOT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `phone_number` varchar(20) DEFAULT NULL,
+  `email` varchar(255) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `verification_token` varchar(255) DEFAULT NULL,
+  `verified` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `Customer`
+--
+
+INSERT INTO `Customer` (`customer_id`, `first_name`, `last_name`, `phone_number`, `email`, `username`, `password_hash`, `verification_token`, `verified`) VALUES
+(1, 'Jake', 'Smart', '8455513508', 'jakensmart13@yahoo.com', 'jake1', '$2y$10$qi6fjRLTZl9H2/EK5HspvuQpgkahMIzsgXblNk/H8WmKeKS16ngdm', NULL, 1),
+(3, 'Tony', 'Petrongolo', '6094919973', 'petrongoloa0609@gmail.com', 'Tonyp19', '$2y$10$WQI7cw3uIGtfo2f.R.oaK.lrhWJdpXH8/hUnI48G6mKGvl5MSyH/W', NULL, 1),
+(4, 'christen', 'Vogel', '', 'csunrise24@yahoo.com', 'cvogel', '$2y$10$sdFFqL9mB/2HrbQV3LnYb.BzjHuZPc3amiMTxzrpdnDo5TrrVsd1S', '599372ed06c9286ab6f3380006542d03', 0),
+(5, 'Rachel', 'McCuen', '6097607244', 'relberson1@gmail.com', 'rachteach', '$2y$10$l4l6wvMKjaRQ/1wK9Hi/RO3UA5kCldv.VXQ1bqTb.85zBALa49y/2', NULL, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `CustomerLists`
+--
+
+CREATE TABLE `CustomerLists` (
+  `list_id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `CustomerLists`
+--
+
+INSERT INTO `CustomerLists` (`list_id`, `customer_id`, `product_id`, `quantity`) VALUES
+(1, 5, 3, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Employee`
+--
+
+CREATE TABLE `Employee` (
+  `employee_id` int(11) NOT NULL,
+  `employee_email` varchar(255) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `role` enum('employee','admin') DEFAULT 'employee'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `Employee`
+--
+
+INSERT INTO `Employee` (`employee_id`, `employee_email`, `password_hash`, `username`, `role`) VALUES
+(7, 'jakensmart13@yahoo.com', '$2y$10$7exr87BnoF3S6Gj5foG53OaNUI3HKu3q0AehTLllqIk9E4vlW5uzG', 'jake1', 'admin'),
+(8, 'nabbott2005@gmail.com', '$2y$10$FVneOaHNJkrorION54sY9OJGHr73k1z05SDq3pngfg6C0SNROdB3y', 'noah1', 'admin'),
+(9, 'petrongoloa0609@gmail.com', '$2y$10$VQmHLuYWoUeCuYkB.x3OJu4U9fPbQ/lUzXRdAqnBKWQtMCk5lNSla', 'tony1', 'admin'),
+(10, 'jake@outlook.com', '$2y$10$g0Nb3JPfycictVaDVxcwW.Zj6gMinlFdjNEnLBuvbtdJINtsJCWUu', 'jake2', 'employee');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `EmployeeSchedules`
+--
+
+CREATE TABLE `EmployeeSchedules` (
+  `schedule_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `shift_date` date NOT NULL,
+  `shift_time` varchar(50) NOT NULL,
+  `role_tasks` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `EmployeeTasks`
+--
+
+CREATE TABLE `EmployeeTasks` (
+  `task_id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `task_description` text NOT NULL,
+  `task_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Product`
+--
+
+CREATE TABLE `Product` (
+  `product_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `stock_quantity` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `Product`
+--
+
+INSERT INTO `Product` (`product_id`, `name`, `price`, `image_path`, `description`, `stock_quantity`) VALUES
+(2, 'Fraizer Fir (7-9 feet)', 95.00, 'uploads/fraizer.jpg', 'Ideal size for most homes with dense foliage and a classic shape', 36),
+(3, 'Douglas Fir (under 6 feet)', 60.00, 'uploads/Douglas.jpg', 'Soft needles with sturdy branches, perfect for ornaments', 291),
+(4, 'Douglas Fir (over 6 feet)', 70.00, 'uploads/Douglas.jpg', 'Soft needles with sturdy branches, perfect for ornaments', 258),
+(5, 'Norway Spruce (under 6 feet)', 60.00, 'uploads/Norway.jpg', 'Fat, Ball-Shaped tree with especially sturdy branches and pointy needles', 292),
+(6, 'Norway Spruce (over 6 feet)', 70.00, 'uploads/Norway.jpg', 'Fat, Ball-Shaped tree with especially sturdy branches and pointy needles', 275),
+(7, 'Canaan Fir (under 6 feet)', 60.00, 'uploads/cAANAN.webp', 'Tall, skinny tree with soft needles and pleasant scent', 287),
+(8, 'Canaan Fir (over 6 feet)', 70.00, 'uploads/cAANAN.webp', 'Tall, skinny tree with soft needles and pleasant scent', 282),
+(9, 'White Pine (ALL sizes)', 60.00, 'uploads/White.jpg', 'Fat tree with soft needles and flimsey branches', 98),
+(10, 'Blue Spruce (under 6 feet)', 60.00, 'uploads/blue spruce.jpg', 'Visually stunning tree with blue, stiff, and very sharp needles', 0),
+(11, 'Blue Spruce (over 6 feet)', 70.00, 'uploads/blue spruce.jpg', 'Visually stunning tree with blue, stiff, and very sharp needles', 0),
+(12, 'Concolor Fir (under 6 feet)', 60.00, 'uploads/Concolor.jpg', 'Long needles with a pleasant citrus scent', 0),
+(13, 'Concolor Fir (over 6 feet)', 70.00, 'uploads/Concolor.jpg', 'Long needles with a pleasant citrus scent	', 0),
+(14, 'Undecorated Wreath', 25.00, 'uploads/IMG_2111.jpeg', 'Fresh evergreen wreath, simple and elegant for doors or walls', 14),
+(15, 'Decorated Wreaths', 35.00, 'uploads/IMG_2128.jpeg', 'Handmade with bows, pinecones, and bells for festive charm', 8),
+(16, 'White Pine Roping (75 feet)', 45.00, 'uploads/wproppe.jpg', 'Fresh garland for mantels, railings, or outdoor decor', 15),
+(17, 'Pointsettia (6 inch pot)', 10.00, 'uploads/pointsettas.jpg', 'Classic vibrant red to brighten your holiday decor', 11),
+(18, 'Pointsettia (8 inch pot)', 20.00, 'uploads/pointsettas.jpg', 'Classic vibrant red to brighten your holiday decor	', 12),
+(19, 'Medium Tree Stand', 25.00, 'uploads/Tree.png', '___ < size of tree it fits', 14),
+(20, 'Large Tree Stand', 40.00, 'uploads/Tree.png', '___ < size of tree that fits ', 15),
+(22, 'Decorated Wreath ($30)', 30.00, '', 'Handmade with bows, pinecones, and bells for festive charm	', 92);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Review`
+--
+
+CREATE TABLE `Review` (
+  `review_id` int(11) NOT NULL,
+  `customer_id` int(11) DEFAULT NULL,
+  `product_id` int(11) DEFAULT NULL,
+  `rating` int(11) DEFAULT NULL CHECK (`rating` between 1 and 5),
+  `review_text` text NOT NULL,
+  `submitted_date` date DEFAULT curdate(),
+  `reply_text` text DEFAULT NULL,
+  `reply_date` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
