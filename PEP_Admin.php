@@ -5,24 +5,20 @@ ini_set('display_errors', 1);
 session_start();
 include 'config.php';
 require('fpdf/fpdf.php');
-
 // === SECURE LOGIN CHECK ===
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
   $_SESSION['error'] = "You must be logged in as an admin to access this page.";
   header("Location: PEP_Main.php");
   exit;
 }
-
 // Initialize messages
 $success = $error = '';
 $report_html = '';
 $report_data = [];
 $chart_html = '';
 $chart_data = [];
-
 // Determine active tab
 $active_tab = $_POST['tab'] ?? 'employee-accounts';
-
 // === PASSWORD VALIDATION HELPER ===
 function validatePassword($pwd, &$errors = []) {
   $errors = [];
@@ -33,7 +29,6 @@ function validatePassword($pwd, &$errors = []) {
   if (!preg_match('/[^A-Za-z0-9]/', $pwd)) $errors[] = "one special character";
   return empty($errors);
 }
-
 // === EMPLOYEE CRUD (WITH PASSWORD RULES + ADMIN SYNC + USERNAME FOR ALL) ===
 if (($_POST['action'] ?? '') === 'add_employee') {
   $email = trim($_POST['empEmail'] ?? '');
@@ -74,7 +69,6 @@ if (($_POST['action'] ?? '') === 'add_employee') {
     $stmt->close();
   }
 }
-
 if (($_POST['action'] ?? '') === 'update_employee') {
   $id = $_POST['id'] ?? 0;
   $email = trim($_POST['email'] ?? '');
@@ -122,7 +116,6 @@ if (($_POST['action'] ?? '') === 'update_employee') {
     $error = "All fields are required.";
   }
 }
-
 if (($_POST['action'] ?? '') === 'delete_employee') {
   $id = $_POST['id'] ?? 0;
   if ($id) {
@@ -130,7 +123,6 @@ if (($_POST['action'] ?? '') === 'delete_employee') {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-
     $stmt = $conn->prepare("DELETE FROM Employee WHERE employee_id = ?");
     $stmt->stmt->bind_param("i", $id);
     if ($stmt->execute()) {
@@ -141,7 +133,6 @@ if (($_POST['action'] ?? '') === 'delete_employee') {
     $stmt->close();
   }
 }
-
 // === TASKS ===
 if (($_POST['action'] ?? '') === 'add_task') {
   $emp_id = $_POST['employee_id'] ?? 0;
@@ -175,7 +166,6 @@ if (($_POST['action'] ?? '') === 'delete_task') {
     $stmt->close();
   }
 }
-
 // === SCHEDULES ===
 if (($_POST['action'] ?? '') === 'add_schedule') {
   $emp_id = $_POST['employee_id'] ?? 0;
@@ -211,7 +201,6 @@ if (($_POST['action'] ?? '') === 'delete_schedule') {
     $stmt->close();
   }
 }
-
 // === PRODUCTS ===
 if (($_POST['action'] ?? '') === 'add_product') {
   $name = $_POST['name'] ?? '';
@@ -262,7 +251,6 @@ if (($_POST['action'] ?? '') === 'delete_product') {
     $stmt->close();
   }
 }
-
 // === REVIEWS ===
 if (($_POST['action'] ?? '') === 'reply_review') {
   $id = $_POST['id'] ?? 0;
@@ -285,7 +273,6 @@ if (($_POST['action'] ?? '') === 'delete_review') {
     $stmt->close();
   }
 }
-
 // === SALES REPORT LOGIC (AGGREGATED BY PRODUCT) ===
 if ($active_tab === 'sales-report' && isset($_POST['generate_report'])) {
   $period = $_POST['period'] ?? 'daily';
@@ -374,7 +361,6 @@ if ($active_tab === 'sales-report' && isset($_POST['generate_report'])) {
     'period' => $period
   ];
 }
-
 // === PDF DOWNLOAD ===
 if ($active_tab === 'sales-report' && isset($_POST['download_pdf']) && !empty($_SESSION['last_report'])) {
   $report = $_SESSION['last_report'];
@@ -414,7 +400,6 @@ if ($active_tab === 'sales-report' && isset($_POST['download_pdf']) && !empty($_
   $pdf->Output('D', $filename);
   exit;
 }
-
 // === CHARTS TAB LOGIC ===
 if ($active_tab === 'charts' && isset($_POST['chart_type'])) {
   $type = $_POST['chart_type'];
@@ -517,7 +502,6 @@ if ($active_tab === 'charts' && isset($_POST['chart_type'])) {
     </script>
   ";
 }
-
 // === DATA FETCH — NOW INCLUDES USERNAME ===
 $employees = $conn->query("SELECT employee_id AS id, employee_email AS email, role, username FROM Employee ORDER BY username");
 $tasks = $conn->query("SELECT t.task_id AS id, e.username, t.task_description, t.task_date AS date FROM EmployeeTasks t JOIN Employee e ON t.employee_id = e.employee_id ORDER BY t.task_date");
@@ -562,7 +546,20 @@ $reviews = $conn->query("SELECT r.review_id AS id, CONCAT(c.first_name,' ',c.las
       <li class="nav-item"><a class="nav-link <?php echo $active_tab=='products'?'active':''; ?>" href="#" onclick="setTab('products')"><i class="bi bi-box me-2"></i>Products</a></li>
       <li class="nav-item"><a class="nav-link <?php echo $active_tab=='reviews'?'active':''; ?>" href="#" onclick="setTab('reviews')"><i class="bi bi-chat-dots me-2"></i>Reviews</a></li>
       <li class="nav-item"><a class="nav-link <?php echo $active_tab=='sales-report'?'active':''; ?>" href="#" onclick="setTab('sales-report')"><i class="bi bi-graph-up me-2"></i>Sales Report</a></li>
-      <li class="nav-item"><a class="nav-link <?php echo $active_tab=='charts'?'active':''; ?>" href="#" onclick="setTab('charts')"><i class="bi bi-bar-chart-line me-2"></i>Charts</a></li>
+      
+            <li class="nav-item"><a class="nav-link <?php echo $active_tab=='charts'?'active':''; ?>" href="#" onclick="setTab('charts')"><i class="bi bi-bar-chart-line me-2"></i>Charts</a></li>
+      
+      
+      
+<li class="nav-item">
+  <a class="nav-link portal-link" href="PEP_EmployeePortal.php">
+    <i class="bi bi-arrow-left me-2"></i>Back to Employee Portal
+  </a>
+</li>
+
+      
+      
+    
       <li class="nav-item"><a class="nav-link logout-link" href="logout.php"><i class="bi bi-box-arrow-left me-2"></i>Logout</a></li>
     </ul>
   </div>
@@ -846,6 +843,14 @@ $reviews = $conn->query("SELECT r.review_id AS id, CONCAT(c.first_name,' ',c.las
       const id = inp.id.replace('editPwd', '');
       inp.addEventListener('input', () => checkPwd(inp, 'editLen'+id, 'editUpper'+id, 'editLower'+id, 'editNum'+id, 'editSpecial'+id));
     });
+    
+    document.querySelectorAll('.portal-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = this.href;
+    });
+});
+
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
