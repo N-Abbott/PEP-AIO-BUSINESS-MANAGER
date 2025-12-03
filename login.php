@@ -1,5 +1,5 @@
 <?php
-ob_start();                    // ← Fixes redirect issues (must be first)
+ob_start();
 session_start();
 include 'config.php';
 
@@ -11,19 +11,18 @@ $return_url = $_GET['return'] ?? 'PEP_Main.php';
 // ---------------------------------------------------------------------
 if (isset($_GET['verify'])) {
     $token = $_GET['verify'];
-    $sql = "SELECT customer_id FROM Customer WHERE verification_token = ? AND verified = 0";
-    $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare("SELECT customer_id FROM Customer WHERE verification_token = ? AND verified = 0");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $stmt->bind_result($id);
     if ($stmt->fetch()) {
         $stmt->close();
-        $sql = "UPDATE Customer SET verified = 1, verification_token = NULL WHERE customer_id = ?";
-        $stmt = $conn->prepare($sql);
+        $stmt = $conn->prepare("UPDATE Customer SET verified = 1, verification_token = NULL WHERE customer_id = ?");
         $stmt->bind_param("i", $id);
-        $stmt->execute() ? $success = "Account verified! Please sign in." : $error = "Verification failed.";
+        $stmt->execute();
+        $success = "Email verified successfully! You can now sign in.";
     } else {
-        $error = "Invalid or already verified token.";
+        $error = "Invalid or expired verification link.";
     }
     $stmt->close();
 }
@@ -32,20 +31,19 @@ if (isset($_GET['verify'])) {
 // 2. Customer Sign-Up
 // ---------------------------------------------------------------------
 if ($_POST['action'] ?? '' === 'signup') {
-    $first_name = trim($_POST['fname'] ?? '');
-    $last_name  = trim($_POST['lname'] ?? '');
+    $first_name   = trim($_POST['fname'] ?? '');
+    $last_name    = trim($_POST['lname'] ?? '');
     $phone_number = trim($_POST['phone'] ?? '');
-    $email      = trim($_POST['email'] ?? '');
-    $username   = trim($_POST['username'] ?? '');
-    $password   = $_POST['password'] ?? '';
+    $email        = trim($_POST['email'] ?? '');
+    $username     = trim($_POST['username'] ?? '');
+    $password     = $_POST['password'] ?? '';
 
     if (!$first_name || !$last_name || !$email || !$username || !$password) {
-        $error = "All fields are required.";
+        $error = "Please fill in all required fields.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Invalid email address.";
+        $error = "Please enter a valid email address.";
     } else {
-        $sql = "SELECT COUNT(*) FROM Customer WHERE username = ? OR email = ?";
-        $stmt = $conn->prepare($sql);
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM Customer WHERE username = ? OR email = ?");
         $stmt->bind_param("ss", $username, $email);
         $stmt->execute();
         $stmt->bind_result($count);
@@ -53,29 +51,32 @@ if ($_POST['action'] ?? '' === 'signup') {
         $stmt->close();
 
         if ($count > 0) {
-            $error = "Username or email already taken.";
+            $error = "This username or email is already taken.";
         } else {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             $token = bin2hex(random_bytes(32));
 
-            $sql = "INSERT INTO Customer (first_name, last_name, phone_number, email, username, password_hash, verification_token, verified)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 0)";
-            $stmt = $conn->prepare($sql);
+            $stmt = $conn->prepare("INSERT INTO Customer (first_name, last_name, phone_number, email, username, password_hash, verification_token, verified)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
             $stmt->bind_param("sssssss", $first_name, $last_name, $phone_number, $email, $username, $password_hash, $token);
 
             if ($stmt->execute()) {
                 $verify_link = "https://petrongoloevergreenplantation.com/login.php?verify=$token";
-                $message = "<p>Welcome to Petrongolo Evergreen Plantation!</p>
-                            <p>Click the button below to verify your account:</p>
-                            <a href='$verify_link' style='background:#2c5530;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:10px 0;'>
-                            Verify My Account</a>";
+                $message = "<h3>Welcome to Petrongolo Evergreen Plantation!</h3>
+                            <p>Please confirm your email by clicking the button below:</p>
+                            <a href='$verify_link' style='background:#2c5530;color:white;padding:14px 28px;text-decoration:none;border-radius:8px;display:inline-block;'>
+                            Verify My Account</a>
+                            <p>This link expires in 24 hours.</p>";
 
-                $headers = "From: noreply@petrongoloevergreenplantation.com\r\nContent-type: text/html\r\n";
-                mail($email, "Verify Your Account", $message, $headers)
-                    ? $success = "Account created! Check your email to verify."
-                    : $success = "Account created! (Email failed to send)";
+                $headers = "From: noreply@petrongoloevergreenplantation.com\r\nContent-Type: text/html\r\n";
+
+                if (mail($email, "Verify Your Account", $message, $headers)) {
+                    $success = "Account created! Check your email for the verification link.";
+                } else {
+                    $success = "Account created! (Verification email could not be sent — contact support if needed)";
+                }
             } else {
-                $error = "Signup failed. Try again.";
+                $error = "Something went wrong. Please try again later.";
             }
             $stmt->close();
         }
@@ -83,52 +84,68 @@ if ($_POST['action'] ?? '' === 'signup') {
 }
 
 // ---------------------------------------------------------------------
-// 3. Customer Login → REDIRECTS CORRECTLY
+// 3. Customer Login
 // ---------------------------------------------------------------------
 if ($_POST['action'] ?? '' === 'customer_login') {
     $username = trim($_POST['custUsername'] ?? '');
     $password = $_POST['custPassword'] ?? '';
 
-    $sql = "SELECT customer_id, password_hash, verified FROM Customer WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $stmt->bind_result($id, $hash, $verified);
-    if ($stmt->fetch() && $verified && password_verify($password, $hash)) {
-        $_SESSION['user_id'] = $id;
-        $_SESSION['role'] = 'customer';
+    if (!$username || !$password) {
+        $error = "Please enter both username and password.";
+    } else {
+        $stmt = $conn->prepare("SELECT customer_id, password_hash, verified FROM Customer WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->bind_result($id, $hash, $verified);
+        
+        if ($stmt->fetch()) {
+            if (!$verified) {
+                $error = "Please check your email and verify your account first.";
+            } elseif (password_verify($password, $hash)) {
+                $_SESSION['user_id'] = $id;
+                $_SESSION['role']    = 'customer';
+                $stmt->close();
+                $conn->close();
+                header("Location: $return_url");
+                exit;
+            } else {
+                $error = "Wrong password. Please try again.";
+            }
+        } else {
+            $error = "No account found with that username.";
+        }
         $stmt->close();
-        $conn->close();
-        header("Location: $return_url");
-        exit;
     }
-    $stmt->close();
-    $error = $verified ? "Invalid username or password." : "Please verify your email first.";
 }
 
 // ---------------------------------------------------------------------
-// 4. Employee Login → REDIRECTS CORRECTLY
+// 4. Employee Login
 // ---------------------------------------------------------------------
 if ($_POST['action'] ?? '' === 'employee_login') {
-    $email = trim($_POST['empEmail'] ?? '');
+    $email    = trim($_POST['empEmail'] ?? '');
     $password = $_POST['empPassword'] ?? '';
 
-    $sql = "SELECT employee_id, password_hash, role FROM Employee WHERE employee_email = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $stmt->bind_result($id, $hash, $role);
-    if ($stmt->fetch() && password_verify($password, $hash)) {
-        $_SESSION['user_id'] = $id;
-        $_SESSION['role'] = $role;
-        $_SESSION['email'] = $email;
+    if (!$email || !$password) {
+        $error = "Please enter both email and password.";
+    } else {
+        $stmt = $conn->prepare("SELECT employee_id, password_hash, role FROM Employee WHERE employee_email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $stmt->bind_result($id, $hash, $role);
+
+        if ($stmt->fetch() && password_verify($password, $hash)) {
+            $_SESSION['user_id'] = $id;
+            $_SESSION['role']    = $role;
+            $_SESSION['email']   = $email;
+            $stmt->close();
+            $conn->close();
+            header("Location: PEP_EmployeePortal.php");
+            exit;
+        } else {
+            $error = "Wrong employee email or password.";
+        }
         $stmt->close();
-        $conn->close();
-        header("Location: PEP_EmployeePortal.php");
-        exit;
     }
-    $stmt->close();
-    $error = "Invalid employee credentials.";
 }
 
 $conn->close();
@@ -140,74 +157,40 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login • Petrongolo Evergreen Plantation</title>
     <link rel="icon" type="image/png" href="Tree.png">
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <style>
-        :root { --green: #2c5530; --green-light: #3a7b40; --bg: #0f1a12; --text: #e0e0e0; }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0a1a0d 0%, #0f2b15 50%, #0a1a0d 100%);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background-attachment: fixed;
-        }
-        .login-container { width:100%; max-width:480px; }
-        .card {
-            background: rgba(20,35,22,0.65);
-            backdrop-filter: blur(16px);
-            border-radius: 20px;
-            border: 1px solid rgba(60,100,65,0.3);
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            transition: transform .3s;
-        }
-        .card:hover { transform: translateY(-8px); }
-        .header { text-align:center; padding:40px 30px 20px; background:linear-gradient(to bottom,rgba(44,85,48,0.9),transparent); }
-        .header img { height:80px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5)); margin-bottom:16px; }
-        .header h1 { font-family:'Oswald',sans-serif; font-size:2.4rem; color:#c8e6c9; letter-spacing:1px; }
-        .header p { opacity:0.9; font-weight:300; }
-
-        .tab-switch { display:flex; margin:30px 30px 0; border-radius:12px; overflow:hidden; border:1px solid rgba(100,140,97,0.3); background:rgba(0,0,0,0.3); }
-        .tab-btn { flex:1; padding:14px; background:transparent; border:none; color:#aaa; font-weight:500; cursor:pointer; transition:.3s; }
-        .tab-btn.active { background:var(--green); color:white; box-shadow:0 4px 15px rgba(44,85,48,0.4); }
-        .tab-btn i { margin-right:8px; }
-
-        .form-container { padding:30px; display:none; }
-        .form-container.active { display:block; animation:fadeIn .4s; }
-
-        .form-group { margin-bottom:20px; }
-        label { display:block; margin-bottom:8px; color:#c8e6c9; font-weight:500; font-size:0.95rem; }
-        input {
-            width:100%; padding:14px 16px; border:1px solid rgba(100,140,97,0.4); border-radius:10px;
-            background:rgba(15,26,18,0.7); color:white; font-size:1rem; transition:.3s;
-        }
-        input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(44,85,48,0.25); background:rgba(20,35,22,0.9); }
-
-        .btn-primary {
-            width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:10px;
-            font-size:1.1rem; font-weight:600; cursor:pointer; transition:.3s; margin-top:10px;
-        }
-        .btn-primary:hover { background:var(--green-light); transform:translateY(-2px); box-shadow:0 8px 25px rgba(44,85,48,0.4); }
-
-        .link { text-align:center; margin-top:20px; }
-        .link a { color:#88b389; text-decoration:none; font-weight:500; }
-        .link a:hover { color:#a8d5a9; text-decoration:underline; }
-
-        .alert { margin:20px 30px; padding:14px; border-radius:10px; text-align:center; font-size:0.95rem; }
-        .alert-success { background:rgba(76,175,80,0.2); border:1px solid rgba(76,175,80,0.5); color:#c8e6c9; }
-        .alert-danger { background:rgba(244,67,54,0.2); border:1px solid rgba(244,67,54,0.5); color:#ff9999; }
-
-        .back-btn { display:block; text-align:center; margin:30px; color:#88b389; text-decoration:none; font-weight:500; }
-
-        @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:none;} }
-        @media (max-width:480px) { .header h1 {font-size:2rem;} }
+        :root { --green:#2c5530; --green-light:#3a7b40; --bg:#0f1a12; --text:#e0e0e0; }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a1a0d 0%,#0f2b15 50%,#0a1a0d 100%);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background-attachment:fixed;}
+        .login-container{max-width:480px;width:100%;}
+        .card{background:rgba(20,35,22,0.65);backdrop-filter:blur(16px);border-radius:20px;border:1px solid rgba(60,100,65,0.3);box-shadow:0 20px 40px rgba(0,0,0,0.4);overflow:hidden;transition:.3s;}
+        .card:hover{transform:translateY(-8px);}
+        .header{text-align:center;padding:40px 30px 20px;background:linear-gradient(to bottom,rgba(44,85,48,0.9),transparent);}
+        .header img{height:80px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));margin-bottom:16px;}
+        .header h1{font-family:'Oswald',sans-serif;font-size:2.4rem;color:#c8e6c9;letter-spacing:1px;}
+        .header p{opacity:0.9;font-weight:300;}
+        .tab-switch{display:flex;margin:30px 30px 0;border-radius:12px;overflow:hidden;border:1px solid rgba(100,140,97,0.3);background:rgba(0,0,0,0.3);}
+        .tab-btn{flex:1;padding:14px;background:transparent;border:none;color:#aaa;font-weight:500;cursor:pointer;transition:.3s;}
+        .tab-btn.active{background:var(--green);color:white;box-shadow:0 4px 15px rgba(44,85,48,.4);}
+        .tab-btn i{margin-right:8px;}
+        .form-container{padding:30px;display:none;}
+        .form-container.active{display:block;animation:fadeIn .4s;}
+        .form-group{margin-bottom:20px;}
+        label{display:block;margin-bottom:8px;color:#c8e6c9;font-weight:500;font-size:.95rem;}
+        input{width:100%;padding:14px 16px;border:1px solid rgba(100,140,97,.4);border-radius:10px;background:rgba(15,26,18,.7);color:white;font-size:1rem;transition:.3s;}
+        input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(44,85,48,.25);background:rgba(20,35,22,.9);}
+        .btn-primary{width:100%;padding:14px;background:var(--green);color:white;border:none;border-radius:10px;font-size:1.1rem;font-weight:600;cursor:pointer;transition:.3s;margin-top:10px;}
+        .btn-primary:hover{background:var(--green-light);transform:translateY(-2px);box-shadow:0 8px 25px rgba(44,85,48,.4);}
+        .link{text-align:center;margin-top:20px;}
+        .link a{color:#88b389;text-decoration:none;font-weight:500;}
+        .link a:hover{color:#a8d5a9;text-decoration:underline;}
+        .alert{margin:20px 30px;padding:14px;border-radius:10px;text-align:center;font-size:.95rem;}
+        .alert-success{background:rgba(76,175,80,.2);border:1px solid rgba(76,175,80,.5);color:#c8e6c9;}
+        .alert-danger{background:rgba(244,67,54,.2);border:1px solid rgba(244,67,54,.5);color:#ff9999;}
+        .back-btn{display:block;text-align:center;margin:30px;color:#88b389;text-decoration:none;font-weight:500;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+        @media(max-width:480px){.header h1{font-size:2rem;}}
     </style>
 </head>
 <body>
@@ -228,18 +211,18 @@ $conn->close();
         <?php endif; ?>
 
         <div class="tab-switch">
-            <button class="tab-btn active" onclick="switchTab('customer')"><i class="fas fa-user"></i> Customer</button>
-            <button class="tab-btn" onclick="switchTab('employee')"><i class="fas fa-briefcase"></i> Employee</button>
+            <button class="tab-btn active" onclick="switchTab('customer')">Customer</button>
+            <button class="tab-btn" onclick="switchTab('employee')">Employee</button>
         </div>
 
         <!-- Customer -->
         <div id="customer" class="form-container active">
             <form action="login.php?return=<?= urlencode($return_url) ?>" method="post" id="custLogin">
                 <input type="hidden" name="action" value="customer_login">
-                <div class="form-group"><label>Username</label><input type="text" name="custUsername" required placeholder="Your username"></div>
+                <div class="form-group"><label>Username</label><input type="text" name="custUsername" required placeholder="Enter username"></div>
                 <div class="form-group"><label>Password</label><input type="password" name="custPassword" required placeholder="••••••••"></div>
                 <button type="submit" class="btn-primary">Sign In as Customer</button>
-                <div class="link"><a href="#" onclick="showSignup()">No account? Sign up here</a></div>
+                <div class="link"><a href="#" onclick="showSignup()">Don't have an account? Sign up</a></div>
             </form>
 
             <form action="login.php?return=<?= urlencode($return_url) ?>" method="post" id="custSignup" style="display:none;">
@@ -275,10 +258,10 @@ function switchTab(tab) {
     document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
     document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
     document.getElementById(tab).classList.add('active');
-    if (tab === 'customer') { document.getElementById('custLogin').style.display = 'block'; document.getElementById('custSignup').style.display = 'none'; }
+    if (tab === 'customer') { document.getElementById('custLogin').style.display='block'; document.getElementById('custSignup').style.display='none'; }
 }
-function showSignup() { document.getElementById('custLogin').style.display = 'none'; document.getElementById('custSignup').style.display = 'block'; }
-function showSignin() { document.getElementById('custLogin').style.display = 'block'; document.getElementById('custSignup').style.display = 'none'; }
+function showSignup() { document.getElementById('custLogin').style.display='none'; document.getElementById('custSignup').style.display='block'; }
+function showSignin() { document.getElementById('custLogin').style.display='block'; document.getElementById('custSignup').style.display='none'; }
 window.onload = () => switchTab('customer');
 </script>
 
